@@ -118,10 +118,10 @@ func (r *Repo) Obsolete(pkgs []string) ([]string, error) {
 		return nil, err
 	}
 
-	return r.obsolete(pkgs, pkgMap)
+	return r.obsolete(pkgs, pkgMap), nil
 }
 
-func (r *Repo) obsolete(pkgs []string, pkgMap map[string]*pkgDep) ([]string, error) {
+func (r *Repo) obsolete(pkgs []string, pkgMap map[string]*pkgDep) []string {
 	var obsolete map[string]struct{}
 
 	for n := range pkgMap {
@@ -146,7 +146,7 @@ func (r *Repo) obsolete(pkgs []string, pkgMap map[string]*pkgDep) ([]string, err
 		obsol = append(obsol, pkg)
 	}
 
-	return obsol, nil
+	return obsol
 }
 
 func inStrSlice(needle string, haystack []string) bool {

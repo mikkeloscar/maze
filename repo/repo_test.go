@@ -61,3 +61,23 @@ func TestIsNew(t *testing.T) {
 	assert.NoError(t, err, "should not fail")
 	assert.True(t, new, "should be true")
 }
+
+func Testobsolete(t *testing.T) {
+	whiteList := []string{
+		"a",
+		"b",
+		"c",
+		"d",
+	}
+
+	pkgMap := map[string]*pkgDep{
+		"a": &pkgDep{
+			depends: []string{"c"},
+		},
+		"b": &pkgDep{},
+	}
+
+	obsolete := repo1.obsolete(whiteList, pkgMap)
+	assert.Len(t, obsolete, 1, "should have length 1")
+	assert.Equal(t, "d", obsolete[0], "should be equal")
+}
