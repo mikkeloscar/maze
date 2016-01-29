@@ -1,6 +1,8 @@
 package repo
 
 import (
+	"os"
+	"path"
 	"testing"
 
 	"github.com/mikkeloscar/gopkgbuild"
@@ -8,13 +10,14 @@ import (
 )
 
 var (
-	repo1 = Repo{
+	workdir, _ = os.Getwd()
+	repo1      = Repo{
 		Name: "repo1",
-		Path: "test_files",
+		Path: path.Join(workdir, "test_files"),
 	}
 	repo2 = Repo{
 		Name: "repo2",
-		Path: "test_files",
+		Path: path.Join(workdir, "test_files"),
 	}
 )
 
@@ -31,6 +34,27 @@ func TestSplitNameVersion(t *testing.T) {
 	name, version = splitNameVersion("zlib-1.2.8-4/")
 	assert.Equal(t, "zlib", name, "should be equal")
 	assert.Equal(t, "1.2.8-4", version, "should be equal")
+}
+
+func TestAdd(t *testing.T) {
+	pkgPaths := []string{
+		"test_files/ca-certificates-20150402-1-any.pkg.tar.xz",
+	}
+
+	err := repo2.Add(pkgPaths)
+	assert.NoError(t, err, "should not fail")
+
+	// readd package
+	err = repo2.Add(pkgPaths)
+	assert.NoError(t, err, "should not fail")
+
+	// clean
+	err = os.Remove(repo2.DB())
+	assert.NoError(t, err, "should not fail")
+	err = os.Remove(repo2.DB() + ".old")
+	assert.NoError(t, err, "should not fail")
+	err = os.Remove(path.Join(repo2.Path, repo2.Name+".db"))
+	assert.NoError(t, err, "should not fail")
 }
 
 // Test IsNew.
