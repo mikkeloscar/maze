@@ -81,3 +81,9 @@ func Testobsolete(t *testing.T) {
 	assert.Len(t, obsolete, 1, "should have length 1")
 	assert.Equal(t, "d", obsolete[0], "should be equal")
 }
+
+func TestinStrSlice(t *testing.T) {
+	haystack := []string{"a", "b"}
+	assert.True(t, inStrSlice("a", haystack), "should be true")
+	assert.False(t, inStrSlice("c", haystack), "should be false")
+}
