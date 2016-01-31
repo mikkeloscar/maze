@@ -9,10 +9,24 @@ import (
 	"os"
 	"os/exec"
 	"path"
+	"regexp"
 	"strings"
 
 	"github.com/mikkeloscar/gopkgbuild"
 )
+
+var pkgPatt = regexp.MustCompile(`[a-z]+[a-z\-]+[a-z]+-(\d+:)?[\da-z\.]+-\d+-(i686|x86_64|any).pkg.tar.xz(.sig)?`)
+var repos = map[string]*Repo{
+	"test": &Repo{
+		Name: "test",
+		Path: "/home/moscar/projects/go/src/github.com/mikkeloscar/maze-repo/repo/test_db",
+	},
+}
+
+func GetByName(name string) *Repo {
+	v, _ := repos[name]
+	return v
+}
 
 // Repo is a wrapper around the arch tools 'repo-add' and 'repo-remove'.
 type Repo struct {
@@ -61,6 +75,20 @@ func (r *Repo) Remove(pkgs []string) error {
 	cmd.Dir = r.Path
 
 	return cmd.Run()
+}
+
+func (r *Repo) IsNewFilename(file string) (bool, error) {
+	name, version, err := splitFileNameVersion(file)
+	if err != nil {
+		return false, err
+	}
+
+	ver, err := pkgbuild.NewCompleteVersion(version)
+	if err != nil {
+		return false, err
+	}
+
+	return r.IsNew(name, *ver)
 }
 
 // IsNew returns true if pkg is a newer version than what's in the repo.
@@ -239,4 +267,18 @@ func splitNameVersion(str string) (string, string) {
 	version := chars[len(chars)-2:]
 
 	return strings.Join(name, "-"), strings.Join(version, "-")
+}
+
+// turn "zlib-1.2.8-4-x86_64.pkg.tar.xz" into ("zlib", "1.2.8-4").
+func splitFileNameVersion(file string) (string, string, error) {
+	if pkgPatt.MatchString(file) {
+		sections := strings.Split(file, "-")
+		if len(sections) > 3 {
+			name := sections[:len(sections)-3]
+			version := sections[len(sections)-3 : len(sections)-1]
+			return strings.Join(name, "-"), strings.Join(version, "-"), nil
+		}
+	}
+
+	return "", "", fmt.Errorf("invalid package filename")
 }

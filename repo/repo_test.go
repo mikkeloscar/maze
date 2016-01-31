@@ -36,6 +36,33 @@ func TestSplitNameVersion(t *testing.T) {
 	assert.Equal(t, "1.2.8-4", version, "should be equal")
 }
 
+// Test splitting name and version filename.
+func TestSplitFileNameVersion(t *testing.T) {
+	name, version, err := splitFileNameVersion("ca-certificates-20150402-1-any.pkg.tar.xz")
+	assert.NoError(t, err, "should not fail")
+	assert.Equal(t, "ca-certificates", name, "should be equal")
+	assert.Equal(t, "20150402-1", version, "should be equal")
+
+	name, version, err = splitFileNameVersion("ca-certificates-2:20150402-1-any.pkg.tar.xz")
+	assert.NoError(t, err, "should not fail")
+	assert.Equal(t, "ca-certificates", name, "should be equal")
+	assert.Equal(t, "2:20150402-1", version, "should be equal")
+
+	name, version, err = splitFileNameVersion("zlib-1.2.8-4-any.pkg.tar.xz")
+	assert.NoError(t, err, "should not fail")
+	assert.Equal(t, "zlib", name, "should be equal")
+	assert.Equal(t, "1.2.8-4", version, "should be equal")
+
+	name, version, err = splitFileNameVersion("zlib-1.2.8-any.pkg.tar.xz")
+	assert.Error(t, err, "should fail")
+
+	name, version, err = splitFileNameVersion("zlib1.2.8-4-any.pkg.tar.xz")
+	assert.Error(t, err, "should fail")
+
+	name, version, err = splitFileNameVersion("zlib-1.2.8-4-any.pkg.tar.xz")
+	assert.NoError(t, err, "should not fail")
+}
+
 func TestAdd(t *testing.T) {
 	pkgPaths := []string{
 		"test_files/ca-certificates-20150402-1-any.pkg.tar.xz",
