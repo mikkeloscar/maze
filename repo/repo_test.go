@@ -71,6 +71,9 @@ func TestAdd(t *testing.T) {
 	err := repo2.Add(pkgPaths)
 	assert.NoError(t, err, "should not fail")
 
+	err = repo2.Add([]string{})
+	assert.NoError(t, err, "should not fail")
+
 	// readd package
 	err = repo2.Add(pkgPaths)
 	assert.NoError(t, err, "should not fail")

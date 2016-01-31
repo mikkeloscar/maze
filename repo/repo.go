@@ -43,6 +43,10 @@ func (r *Repo) DB() string {
 // Add adds a list of packages to a repo db, moving the package files to
 // the repo db directory if needed.
 func (r *Repo) Add(pkgPaths []string) error {
+	if len(pkgPaths) == 0 {
+		return nil
+	}
+
 	for i, pkg := range pkgPaths {
 		pkgPathDir, pkgPathBase := path.Split(pkg)
 
