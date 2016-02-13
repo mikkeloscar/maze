@@ -21,5 +21,5 @@ CREATE TABLE repos (
 ,hash          TEXT
 ,last_check    DATETIME
 
-,UNIQUE(user, name)
+,UNIQUE(owner, name)
 );
