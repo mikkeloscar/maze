@@ -52,7 +52,18 @@ func (c *Checker) Run() {
 				break
 			}
 
+			if len(repos) > 0 {
+				log.Info("Checking for package updates for all repos")
+			}
+
 			for _, r := range repos {
+				// only check for updates if last check was
+				// more than an hour ago
+				last := r.LastCheck.Add(1 * time.Hour)
+				if time.Now().Before(last) {
+					continue
+				}
+
 				user, err := c.Store.Users().Get(r.UserID)
 				if err != nil {
 					log.Errorf("failed to fetch user from db: %s", err)
