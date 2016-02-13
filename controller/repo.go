@@ -177,6 +177,14 @@ func PostRepo(c *gin.Context) {
 		return
 	}
 
+	// TODO: make branches configurable
+	err = remote.SetupBranch(user, sourceOwner, sourceName, "master", "build")
+	if err != nil {
+		log.Errorf("failed to setup build branch: %s", err)
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+
 	r.UserID = user.ID
 	r.Owner = owner
 	r.Name = name
