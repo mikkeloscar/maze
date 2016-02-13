@@ -16,7 +16,7 @@ func Load(middleware ...gin.HandlerFunc) *gin.Engine {
 
 	repos := e.Group("/api/repos/:owner/:name")
 	{
-		repos.POST("", controller.PostRepo)
+		repos.POST("", session.IsUser(), controller.PostRepo)
 
 		repo := repos.Group("")
 		{

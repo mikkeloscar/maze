@@ -122,11 +122,6 @@ func PostRepo(c *gin.Context) {
 	owner := c.Param("owner")
 	name := c.Param("name")
 
-	if user == nil {
-		c.AbortWithStatus(http.StatusUnauthorized)
-		return
-	}
-
 	in := struct {
 		SourceRepo string `json:"source_repo"`
 	}{}
