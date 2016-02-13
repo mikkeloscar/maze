@@ -13,26 +13,14 @@ import (
 	"strings"
 
 	"github.com/mikkeloscar/gopkgbuild"
+	"github.com/mikkeloscar/maze-repo/model"
 )
 
 var pkgPatt = regexp.MustCompile(`[a-z]+[a-z\-]+[a-z]+-(\d+:)?[\da-z\.]+-\d+-(i686|x86_64|any).pkg.tar.xz(.sig)?`)
-var repos = map[string]*Repo{
-	"test": &Repo{
-		Name: "test",
-		Path: "/home/moscar/projects/go/src/github.com/mikkeloscar/maze-repo/repo/test_db",
-	},
-}
-
-func GetByName(name string) *Repo {
-	v, _ := repos[name]
-	return v
-}
 
 // Repo is a wrapper around the arch tools 'repo-add' and 'repo-remove'.
 type Repo struct {
-	Name  string
-	Path  string
-	Files bool
+	*model.Repo
 }
 
 // DB returns path to db archive.

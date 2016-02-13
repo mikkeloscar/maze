@@ -1,11 +1,16 @@
 package github
 
 import (
+	"encoding/base32"
 	"fmt"
 	"net/http"
 	"net/url"
 
+	"github.com/drone/drone/shared/envconfig"
+	"github.com/drone/drone/shared/httputil"
 	"github.com/google/go-github/github"
+	"github.com/gorilla/securecookie"
+	"github.com/mikkeloscar/maze-repo/common/pkgconfig"
 	"github.com/mikkeloscar/maze-repo/model"
 	"golang.org/x/oauth2"
 )
@@ -25,14 +30,13 @@ type Github struct {
 	Secret string
 }
 
-// TODO: config
 // Load loads the github remote.
-func Load(client, secret string) *Github {
+func Load(env envconfig.Env) *Github {
 	github := Github{
 		URL:    defaultURL,
 		API:    defaultAPI,
-		Client: client,
-		Secret: secret,
+		Client: env.String("CLIENT", ""),
+		Secret: env.String("SECRET", ""),
 	}
 
 	return &github
@@ -51,6 +55,12 @@ func newClient(uri, token string) *github.Client {
 	return c
 }
 
+// getRandom is a helper function that generates a 32-bit random
+// key, base32 encoded as a string value.
+func getRandom() string {
+	return base32.StdEncoding.EncodeToString(securecookie.GenerateRandomKey(32))
+}
+
 // Login authenticates the session and returns the remoter user details.
 func (g *Github) Login(res http.ResponseWriter, req *http.Request) (*model.User, error) {
 	var config = &oauth2.Config{
@@ -61,11 +71,16 @@ func (g *Github) Login(res http.ResponseWriter, req *http.Request) (*model.User,
 			AuthURL:  fmt.Sprintf("%s/login/oauth/authorize", g.URL),
 			TokenURL: fmt.Sprintf("%s/login/oauth/access_token", g.URL),
 		},
-		// RedirectURL: fmt.Sprintf("%s/login/authorize", httputil.GetURL(req)),
+		RedirectURL: fmt.Sprintf("%s/authorize", httputil.GetURL(req)),
 	}
 
 	// get the OAuth code
 	var code = req.FormValue("code")
+	if len(code) == 0 {
+		var random = getRandom()
+		http.Redirect(res, req, config.AuthCodeURL(random), http.StatusSeeOther)
+		return nil, nil
+	}
 
 	tok, err := config.Exchange(oauth2.NoContext, code)
 	if err != nil {
@@ -84,44 +99,75 @@ func (g *Github) Login(res http.ResponseWriter, req *http.Request) (*model.User,
 	return &user, nil
 }
 
+// Repo fetches the named repository from the remote system.
+func (g *Github) Repo(u *model.User, owner, name string) (*model.Repo, error) {
+	client := newClient(g.API, u.Token)
+	_, _, err := client.Repositories.Get(owner, name)
+	if err != nil {
+		return nil, err
+	}
+
+	repo := &model.Repo{}
+	repo.SourceOwner = owner
+	repo.SourceName = name
+
+	return repo, nil
+}
+
+// Perm fetches the named repository permissions from the remote system for the
+// specified user.
+func (g *Github) Perm(u *model.User, owner, name string) (*model.Perm, error) {
+	client := newClient(g.API, u.Token)
+	r, _, err := client.Repositories.Get(owner, name)
+	if err != nil {
+		return nil, err
+	}
+
+	perm := &model.Perm{}
+	perm.Admin = (*r.Permissions)["admin"]
+	perm.Push = (*r.Permissions)["push"]
+	perm.Pull = (*r.Permissions)["pull"]
+	return perm, nil
+}
+
 // EmptyCommit creates/adds a new empty commit to a branch of a repo.
 // if srcBranch and dstBranch are different then the commit will include the
 // state of srcbranch effectively rebasing dstBranch onto srcBranch.
-func (g *Github) EmptyCommit(u *model.User, repo, srcBranch, dstBranch, msg string) error {
+func (g *Github) EmptyCommit(u *model.User, owner, repo, srcBranch, dstBranch, msg string) error {
 	client := newClient(g.API, u.Token)
 	// Get head of Srcbranch
-	r, _, err := client.Git.GetRef(u.Login, repo, fmt.Sprintf("heads/%s", srcBranch))
+	r, _, err := client.Git.GetRef(owner, repo, fmt.Sprintf("heads/%s", srcBranch))
 	if err != nil {
 		return err
 	}
 
 	// get the last commit (head of branch)
-	c, _, err := client.Git.GetCommit(u.Login, repo, *r.Object.SHA)
+	c, _, err := client.Git.GetCommit(owner, repo, *r.Object.SHA)
 	if err != nil {
 		return err
 	}
 
 	// Get tree of latest commit
-	t, _, err := client.Git.GetTree(u.Login, repo, *r.Object.SHA, false)
+	t, _, err := client.Git.GetTree(owner, repo, *r.Object.SHA, false)
 	if err != nil {
 		return err
 	}
 
 	// create a new tree identical to the parent (no changes empty commit)
-	t, _, err = client.Git.CreateTree(u.Login, repo, *c.Tree.SHA, t.Entries)
+	t, _, err = client.Git.CreateTree(owner, repo, *c.Tree.SHA, t.Entries)
 	if err != nil {
 		return err
 	}
 
 	if srcBranch != dstBranch {
 		// Get head of branch
-		r, _, err = client.Git.GetRef(u.Login, repo, fmt.Sprintf("heads/%s", dstBranch))
+		r, _, err = client.Git.GetRef(owner, repo, fmt.Sprintf("heads/%s", dstBranch))
 		if err != nil {
 			return err
 		}
 
 		// get the last commit (head of branch)
-		c, _, err = client.Git.GetCommit(u.Login, repo, *r.Object.SHA)
+		c, _, err = client.Git.GetCommit(owner, repo, *r.Object.SHA)
 		if err != nil {
 			return err
 		}
@@ -133,7 +179,7 @@ func (g *Github) EmptyCommit(u *model.User, repo, srcBranch, dstBranch, msg stri
 		Tree:    t,
 		Parents: []github.Commit{*c},
 	}
-	c2, _, err := client.Git.CreateCommit(u.Login, repo, commit)
+	c2, _, err := client.Git.CreateCommit(owner, repo, commit)
 	if err != nil {
 		return err
 	}
@@ -145,7 +191,7 @@ func (g *Github) EmptyCommit(u *model.User, repo, srcBranch, dstBranch, msg stri
 			SHA: c2.SHA,
 		},
 	}
-	_, _, err = client.Git.UpdateRef(u.Login, repo, ref, false)
+	_, _, err = client.Git.UpdateRef(owner, repo, ref, false)
 	if err != nil {
 		return err
 	}
@@ -155,23 +201,23 @@ func (g *Github) EmptyCommit(u *model.User, repo, srcBranch, dstBranch, msg stri
 
 // SetupBranch sets up a new branch based on srcBranch. If the branch already
 // exists nothing happens.
-func (g *Github) SetupBranch(u *model.User, repo, srcBranch, dstBranch string) error {
+func (g *Github) SetupBranch(u *model.User, owner, repo, srcBranch, dstBranch string) error {
 	client := newClient(g.API, u.Token)
 	// check if dstBranch exists
-	_, resp, err := client.Git.GetRef(u.Login, repo, fmt.Sprintf("heads/%s", dstBranch))
+	_, resp, err := client.Git.GetRef(owner, repo, fmt.Sprintf("heads/%s", dstBranch))
 	if err != nil {
-		if resp.StatusCode != 404 {
+		if resp.StatusCode != http.StatusNotFound {
 			return err
 		}
 	}
 
 	// branch already exist
-	if resp.StatusCode == 200 {
+	if resp.StatusCode == http.StatusOK {
 		return nil
 	}
 
 	// Get head of Srcbranch
-	r, _, err := client.Git.GetRef(u.Login, repo, fmt.Sprintf("heads/%s", srcBranch))
+	r, _, err := client.Git.GetRef(owner, repo, fmt.Sprintf("heads/%s", srcBranch))
 	if err != nil {
 		return err
 	}
@@ -184,10 +230,22 @@ func (g *Github) SetupBranch(u *model.User, repo, srcBranch, dstBranch string) e
 		Ref:    &branchRef,
 		Object: r.Object,
 	}
-	_, _, err = client.Git.CreateRef(u.Login, repo, ref)
+	_, _, err = client.Git.CreateRef(owner, repo, ref)
 	if err != nil {
 		return err
 	}
 
 	return nil
+}
+
+// GetConfig gets and parses the package.yml config file.
+func (g *Github) GetConfig(u *model.User, owner, repo, path string) (*pkgconfig.PkgConfig, error) {
+	client := newClient(g.API, u.Token)
+	reader, err := client.Repositories.DownloadContents(owner, repo, path, nil)
+	if err != nil {
+		return nil, err
+	}
+	defer reader.Close()
+
+	return pkgconfig.ReadConfig(reader)
 }

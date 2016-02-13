@@ -1,12 +1,19 @@
 package controller
 
 import (
+	"fmt"
 	"io"
+	"net/http"
 	"os"
 	"path"
+	"strings"
 
+	log "github.com/Sirupsen/logrus"
+	"github.com/drone/drone/shared/crypto"
 	"github.com/gin-gonic/gin"
-	"github.com/mikkeloscar/maze-repo/repo"
+	"github.com/mikkeloscar/maze-repo/remote"
+	"github.com/mikkeloscar/maze-repo/router/middleware/session"
+	"github.com/mikkeloscar/maze-repo/store"
 	"github.com/satori/go.uuid"
 )
 
@@ -28,37 +35,28 @@ type MetaPkg struct {
 }
 
 func PostUploadStart(c *gin.Context) {
-	name := c.Param("name")
-	repository := repo.GetByName(name)
+	// name := c.Param("name")
+	// repository := repo.GetByName(name)
+	// repo := session.Repo(c)
 
-	if repository == nil {
-		c.AbortWithStatus(404)
-		return
-	}
-
-	c.JSON(200, gin.H{
+	c.JSON(http.StatusOK, gin.H{
 		"session_id": getSessionID(),
 	})
 }
 
 func PostUploadFile(c *gin.Context) {
-	name := c.Param("name")
 	pkg := c.Param("filename")
 	sessionID := c.Param("sessionid")
-	repository := repo.GetByName(name)
-
-	if repository == nil {
-		c.AbortWithStatus(404)
-		return
-	}
+	repo := session.Repo(c)
 
 	if _, ok := sessions[sessionID]; !ok {
-		c.AbortWithStatus(404)
+		c.AbortWithStatus(http.StatusNotFound)
 	}
 
 	// TODO check valid filename
+	// TODO check valid file content
 
-	new, err := repository.IsNewFilename(pkg)
+	new, err := repo.IsNewFilename(pkg)
 	if err != nil {
 		c.AbortWithError(400, err)
 		return
@@ -69,48 +67,131 @@ func PostUploadFile(c *gin.Context) {
 		return
 	}
 
-	pkg = path.Join(repository.Path, pkg)
+	pkg = path.Join(repo.Path, pkg)
 
 	f, err := os.Create(pkg)
 	if err != nil {
-		// TODO: log error.
-		c.AbortWithStatus(500)
+		log.Errorf("failed to create file %s: %s", pkg, err)
+		c.AbortWithStatus(http.StatusInternalServerError)
 		return
 	}
 
 	_, err = io.Copy(f, c.Request.Body)
 	if err != nil {
-		// TODO: log error.
-		c.AbortWithStatus(500)
+		log.Errorf("failed to write data: %s", err)
+		c.AbortWithStatus(http.StatusInternalServerError)
 		return
 	}
 
 	sessions[sessionID] = append(sessions[sessionID], pkg)
 
-	c.Writer.WriteHeader(200)
+	c.Writer.WriteHeader(http.StatusOK)
 }
 
 func PostUploadDone(c *gin.Context) {
-	name := c.Param("name")
 	sessionID := c.Param("sessionid")
-	repository := repo.GetByName(name)
-
-	if repository == nil {
-		c.AbortWithStatus(404)
-		return
-	}
+	repo := session.Repo(c)
 
 	if v, ok := sessions[sessionID]; ok {
 		delete(sessions, sessionID)
-		err := repository.Add(v)
+		err := repo.Add(v)
 		if err != nil {
-			// TODO: log error.
-			c.AbortWithStatus(500)
+			log.Errorf("failed to add package '%s' to repository '%s': %s", v, repo.Name, err)
+			c.AbortWithStatus(http.StatusInternalServerError)
 			return
 		}
-		c.Writer.WriteHeader(200)
+		c.Writer.WriteHeader(http.StatusOK)
 		return
 	}
 
-	c.AbortWithStatus(404)
+	c.AbortWithStatus(http.StatusNotFound)
+}
+
+func splitRepoName(source string) (string, string, error) {
+	split := strings.Split(source, "/")
+	if len(split) != 2 {
+		return "", "", fmt.Errorf("invalid repo format")
+	}
+
+	return split[0], split[1], nil
+}
+
+func PostRepo(c *gin.Context) {
+	remote := remote.FromContext(c)
+	user := session.User(c)
+	owner := c.Param("owner")
+	name := c.Param("name")
+
+	if user == nil {
+		c.AbortWithStatus(http.StatusUnauthorized)
+		return
+	}
+
+	in := struct {
+		SourceRepo string `json:"source_repo"`
+	}{}
+	err := c.Bind(&in)
+	if err != nil {
+		c.AbortWithStatus(http.StatusBadRequest)
+		return
+	}
+
+	sourceOwner, sourceName, err := splitRepoName(in.SourceRepo)
+	if err != nil {
+		c.AbortWithStatus(http.StatusBadRequest)
+		return
+	}
+
+	// error if the repository already exists
+	_r, err := store.GetRepoByOwnerName(c, owner, name)
+	if err != nil {
+		log.Errorf("failed to lookup repo: %s", err)
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+
+	if _r != nil {
+		log.Errorf("unable to add repo: %s/%s, already exists", owner, name)
+		c.AbortWithStatus(http.StatusConflict)
+		return
+	}
+
+	// Fetch source repo
+	r, err := remote.Repo(user, sourceOwner, sourceName)
+	if err != nil {
+		log.Errorf("unable to get repo: %s/%s: %s", sourceOwner, sourceName, err)
+		c.AbortWithStatus(http.StatusNotFound)
+		return
+	}
+
+	p, err := remote.Perm(user, sourceOwner, sourceName)
+	if err != nil {
+		log.Errorf("unable to get repo permission for: %s/%s: %s", sourceOwner, sourceName, err)
+		c.AbortWithStatus(http.StatusNotFound)
+		return
+	}
+
+	if !(p.Admin || (p.Pull && p.Push)) {
+		log.Errorf("pull/push access required")
+		c.AbortWithStatus(http.StatusUnauthorized)
+		return
+	}
+
+	r.UserID = user.ID
+	r.Owner = owner
+	r.Name = name
+	r.Hash = crypto.Rand()
+
+	err = store.CreateRepo(c, r)
+	if err != nil {
+		log.Errorf("failed to add repo: %s", err)
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+
+	c.JSON(http.StatusOK, r)
+}
+
+func GetRepo(c *gin.Context) {
+	c.JSON(http.StatusOK, session.Repo(c))
 }
