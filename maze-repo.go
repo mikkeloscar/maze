@@ -2,7 +2,9 @@ package main
 
 import (
 	"flag"
+	"os"
 
+	log "github.com/Sirupsen/logrus"
 	"github.com/drone/drone/shared/envconfig"
 	"github.com/gin-gonic/gin"
 	"github.com/mikkeloscar/maze-repo/checker"
@@ -28,8 +30,8 @@ func main() {
 	env := envconfig.Load(*envConf)
 	store_, err := datastore.Load(env)
 	if err != nil {
-		// TODO logging
-		panic(err)
+		log.Errorf("failed to load datastore: %s", err)
+		os.Exit(1)
 	}
 	remote_ := remote.Load(env)
 
