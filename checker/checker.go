@@ -36,6 +36,7 @@ func (c *Checker) update(u *model.User, r *repo.Repo) error {
 		if err != nil {
 			return err
 		}
+		log.Printf("Making update request for '%s'", pkg)
 	}
 	return nil
 }
@@ -45,6 +46,7 @@ func (c *Checker) Run() {
 	for {
 		select {
 		case <-time.After(time.Minute * 10):
+			// case <-time.After(time.Second * 10):
 			// TODO: maybe run in goroutine
 			repos, err := c.Store.Repos().GetRepoList()
 			if err != nil {
