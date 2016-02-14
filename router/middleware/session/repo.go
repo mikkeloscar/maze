@@ -5,9 +5,9 @@ import (
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/gin-gonic/gin"
-	"github.com/mikkeloscar/maze-repo/model"
-	"github.com/mikkeloscar/maze-repo/repo"
-	"github.com/mikkeloscar/maze-repo/store"
+	"github.com/mikkeloscar/maze/model"
+	"github.com/mikkeloscar/maze/repo"
+	"github.com/mikkeloscar/maze/store"
 )
 
 func Repo(c *gin.Context) *repo.Repo {

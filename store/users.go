@@ -1,7 +1,7 @@
 package store
 
 import (
-	"github.com/mikkeloscar/maze-repo/model"
+	"github.com/mikkeloscar/maze/model"
 	"golang.org/x/net/context"
 )
 

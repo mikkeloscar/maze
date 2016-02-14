@@ -5,8 +5,8 @@ import (
 
 	"github.com/drone/drone/shared/token"
 	"github.com/gin-gonic/gin"
-	"github.com/mikkeloscar/maze-repo/model"
-	"github.com/mikkeloscar/maze-repo/store"
+	"github.com/mikkeloscar/maze/model"
+	"github.com/mikkeloscar/maze/store"
 )
 
 func User(c *gin.Context) *model.User {

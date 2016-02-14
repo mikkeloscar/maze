@@ -5,11 +5,11 @@ import (
 	"time"
 
 	log "github.com/Sirupsen/logrus"
-	"github.com/mikkeloscar/maze-repo/model"
-	"github.com/mikkeloscar/maze-repo/remote"
-	"github.com/mikkeloscar/maze-repo/repo"
-	"github.com/mikkeloscar/maze-repo/source/aur"
-	"github.com/mikkeloscar/maze-repo/store"
+	"github.com/mikkeloscar/maze/model"
+	"github.com/mikkeloscar/maze/remote"
+	"github.com/mikkeloscar/maze/repo"
+	"github.com/mikkeloscar/maze/source/aur"
+	"github.com/mikkeloscar/maze/store"
 )
 
 // Checker can check for package updates in repos.

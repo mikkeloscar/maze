@@ -10,8 +10,8 @@ import (
 	"github.com/drone/drone/shared/httputil"
 	"github.com/google/go-github/github"
 	"github.com/gorilla/securecookie"
-	"github.com/mikkeloscar/maze-repo/common/pkgconfig"
-	"github.com/mikkeloscar/maze-repo/model"
+	"github.com/mikkeloscar/maze/common/pkgconfig"
+	"github.com/mikkeloscar/maze/model"
 	"golang.org/x/oauth2"
 )
 

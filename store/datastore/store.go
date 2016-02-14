@@ -8,7 +8,7 @@ import (
 	log "github.com/Sirupsen/logrus"
 	"github.com/drone/drone/shared/envconfig"
 	_ "github.com/mattn/go-sqlite3"
-	"github.com/mikkeloscar/maze-repo/store"
+	"github.com/mikkeloscar/maze/store"
 	"github.com/rubenv/sql-migrate"
 	"github.com/russross/meddler"
 )

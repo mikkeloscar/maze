@@ -11,9 +11,9 @@ import (
 	log "github.com/Sirupsen/logrus"
 	"github.com/drone/drone/shared/crypto"
 	"github.com/gin-gonic/gin"
-	"github.com/mikkeloscar/maze-repo/remote"
-	"github.com/mikkeloscar/maze-repo/router/middleware/session"
-	"github.com/mikkeloscar/maze-repo/store"
+	"github.com/mikkeloscar/maze/remote"
+	"github.com/mikkeloscar/maze/router/middleware/session"
+	"github.com/mikkeloscar/maze/store"
 	"github.com/satori/go.uuid"
 )
 

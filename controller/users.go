@@ -4,7 +4,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/mikkeloscar/maze-repo/store"
+	"github.com/mikkeloscar/maze/store"
 )
 
 func GetUser(c *gin.Context) {

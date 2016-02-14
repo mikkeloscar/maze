@@ -1,6 +1,6 @@
 package source
 
-import "github.com/mikkeloscar/maze-repo/repo"
+import "github.com/mikkeloscar/maze/repo"
 
 type Source interface {
 	// Updates takes a list of packagenames and returns a list of packages

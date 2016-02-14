@@ -5,7 +5,7 @@ import (
 
 	"github.com/drone/drone/shared/token"
 	"github.com/gin-gonic/gin"
-	"github.com/mikkeloscar/maze-repo/router/middleware/session"
+	"github.com/mikkeloscar/maze/router/middleware/session"
 )
 
 func GetSelf(c *gin.Context) {

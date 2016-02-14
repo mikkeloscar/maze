@@ -9,9 +9,9 @@ import (
 	"github.com/drone/drone/shared/httputil"
 	"github.com/drone/drone/shared/token"
 	"github.com/gin-gonic/gin"
-	"github.com/mikkeloscar/maze-repo/model"
-	"github.com/mikkeloscar/maze-repo/remote"
-	"github.com/mikkeloscar/maze-repo/store"
+	"github.com/mikkeloscar/maze/model"
+	"github.com/mikkeloscar/maze/remote"
+	"github.com/mikkeloscar/maze/store"
 )
 
 func GetLogin(c *gin.Context) {

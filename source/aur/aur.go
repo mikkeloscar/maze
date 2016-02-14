@@ -3,7 +3,7 @@ package aur
 import (
 	"github.com/mikkeloscar/aur"
 	"github.com/mikkeloscar/gopkgbuild"
-	"github.com/mikkeloscar/maze-repo/repo"
+	"github.com/mikkeloscar/maze/repo"
 )
 
 // Updates check for updated packages based on a list of packages and a

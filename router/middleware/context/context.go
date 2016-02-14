@@ -2,8 +2,8 @@ package context
 
 import (
 	"github.com/gin-gonic/gin"
-	"github.com/mikkeloscar/maze-repo/remote"
-	"github.com/mikkeloscar/maze-repo/store"
+	"github.com/mikkeloscar/maze/remote"
+	"github.com/mikkeloscar/maze/store"
 )
 
 func SetStore(s store.Store) gin.HandlerFunc {

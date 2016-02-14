@@ -2,8 +2,8 @@ package router
 
 import (
 	"github.com/gin-gonic/gin"
-	"github.com/mikkeloscar/maze-repo/controller"
-	"github.com/mikkeloscar/maze-repo/router/middleware/session"
+	"github.com/mikkeloscar/maze/controller"
+	"github.com/mikkeloscar/maze/router/middleware/session"
 )
 
 // func Load(middleware ...gin.HandlerFunc) http.Handler {

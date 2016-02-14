@@ -7,11 +7,11 @@ import (
 	log "github.com/Sirupsen/logrus"
 	"github.com/drone/drone/shared/envconfig"
 	"github.com/gin-gonic/gin"
-	"github.com/mikkeloscar/maze-repo/checker"
-	"github.com/mikkeloscar/maze-repo/remote"
-	"github.com/mikkeloscar/maze-repo/router"
-	"github.com/mikkeloscar/maze-repo/router/middleware/context"
-	"github.com/mikkeloscar/maze-repo/store/datastore"
+	"github.com/mikkeloscar/maze/checker"
+	"github.com/mikkeloscar/maze/remote"
+	"github.com/mikkeloscar/maze/router"
+	"github.com/mikkeloscar/maze/router/middleware/context"
+	"github.com/mikkeloscar/maze/store/datastore"
 )
 
 var (

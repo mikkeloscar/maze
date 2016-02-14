@@ -13,7 +13,7 @@ import (
 	"strings"
 
 	"github.com/mikkeloscar/gopkgbuild"
-	"github.com/mikkeloscar/maze-repo/model"
+	"github.com/mikkeloscar/maze/model"
 )
 
 var pkgPatt = regexp.MustCompile(`[a-z]+[a-z\-]+[a-z]+-(\d+:)?[\da-z\.]+-\d+-(i686|x86_64|any).pkg.tar.xz(.sig)?`)

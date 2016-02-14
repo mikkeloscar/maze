@@ -4,9 +4,9 @@ import (
 	"net/http"
 
 	"github.com/drone/drone/shared/envconfig"
-	"github.com/mikkeloscar/maze-repo/common/pkgconfig"
-	"github.com/mikkeloscar/maze-repo/model"
-	"github.com/mikkeloscar/maze-repo/remote/github"
+	"github.com/mikkeloscar/maze/common/pkgconfig"
+	"github.com/mikkeloscar/maze/model"
+	"github.com/mikkeloscar/maze/remote/github"
 )
 
 type Remote interface {

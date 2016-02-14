@@ -3,7 +3,7 @@ package datastore
 import (
 	"database/sql"
 
-	"github.com/mikkeloscar/maze-repo/model"
+	"github.com/mikkeloscar/maze/model"
 	"github.com/russross/meddler"
 )
 
