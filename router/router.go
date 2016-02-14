@@ -40,6 +40,8 @@ func Load(middleware ...gin.HandlerFunc) *gin.Engine {
 		user.Use(session.IsUser())
 		user.GET("", controller.GetSelf)
 		user.POST("/token", controller.PostToken)
+		// TODO: not secure!!! temp hack while we don't have an UI.
+		user.GET("/token", controller.PostToken)
 	}
 
 	users := e.Group("/api/users")

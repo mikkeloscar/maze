@@ -28,7 +28,8 @@ func SetUser() gin.HandlerFunc {
 		var user *model.User
 
 		t, err := token.ParseRequest(c.Request, func(t *token.Token) (string, error) {
-			user, err := store.GetUserLogin(c, t.Text)
+			var err error
+			user, err = store.GetUserLogin(c, t.Text)
 			return user.Hash, err
 		})
 		if err == nil {
