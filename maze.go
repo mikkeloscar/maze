@@ -34,6 +34,8 @@ func main() {
 		log.Fatalf("repo storage error: %s", err)
 	}
 
+	log.Printf("using repo storage path: %s", repo.RepoStorage)
+
 	store_, err := datastore.Load(env)
 	if err != nil {
 		log.Fatalf("failed to load datastore: %s", err)
