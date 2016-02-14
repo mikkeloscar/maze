@@ -1,2 +1,3 @@
 maze
 *.sqlite
+env.conf
