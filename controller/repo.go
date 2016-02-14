@@ -7,6 +7,7 @@ import (
 	"os"
 	"path"
 	"strings"
+	"time"
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/drone/drone/shared/crypto"
@@ -110,7 +111,7 @@ func PostUploadDone(c *gin.Context) {
 func splitRepoName(source string) (string, string, error) {
 	split := strings.Split(source, "/")
 	if len(split) != 2 {
-		return "", "", fmt.Errorf("invalid repo format")
+		return "", "", fmt.Errorf("invalid repo format: %s", source)
 	}
 
 	return split[0], split[1], nil
@@ -122,29 +123,30 @@ func PostRepo(c *gin.Context) {
 	owner := c.Param("owner")
 	name := c.Param("name")
 
+	if owner != user.Login {
+		c.AbortWithStatus(http.StatusUnauthorized)
+		return
+	}
+
 	in := struct {
-		SourceRepo string `json:"source_repo"`
+		SourceRepo string `json:"source_repo" binding:"required"`
 	}{}
-	err := c.Bind(&in)
+	err := c.BindJSON(&in)
 	if err != nil {
+		log.Errorf("failed to parse request body: %s", err)
 		c.AbortWithStatus(http.StatusBadRequest)
 		return
 	}
 
 	sourceOwner, sourceName, err := splitRepoName(in.SourceRepo)
 	if err != nil {
+		log.Error(err)
 		c.AbortWithStatus(http.StatusBadRequest)
 		return
 	}
 
 	// error if the repository already exists
 	_r, err := store.GetRepoByOwnerName(c, owner, name)
-	if err != nil {
-		log.Errorf("failed to lookup repo: %s", err)
-		c.AbortWithStatus(http.StatusInternalServerError)
-		return
-	}
-
 	if _r != nil {
 		log.Errorf("unable to add repo: %s/%s, already exists", owner, name)
 		c.AbortWithStatus(http.StatusConflict)
@@ -183,6 +185,7 @@ func PostRepo(c *gin.Context) {
 	r.UserID = user.ID
 	r.Owner = owner
 	r.Name = name
+	r.LastCheck = time.Now().Add(-1 * time.Hour)
 	r.Hash = crypto.Rand()
 
 	err = store.CreateRepo(c, r)

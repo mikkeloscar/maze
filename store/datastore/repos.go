@@ -14,19 +14,28 @@ type repoStore struct {
 func (db *repoStore) Get(ID int64) (*model.Repo, error) {
 	repo := new(model.Repo)
 	err := meddler.Load(db, repoTable, repo, ID)
-	return repo, err
+	if err != nil {
+		return nil, err
+	}
+	return repo, nil
 }
 
 func (db *repoStore) GetByName(owner, name string) (*model.Repo, error) {
 	repo := new(model.Repo)
 	err := meddler.QueryRow(db, repo, repoNameQuery, owner, name)
-	return repo, err
+	if err != nil {
+		return nil, err
+	}
+	return repo, nil
 }
 
 func (db *repoStore) GetRepoList() ([]*model.Repo, error) {
 	var repos []*model.Repo
 	err := meddler.QueryAll(db, &repos, repoListQuery)
-	return repos, err
+	if err != nil {
+		return nil, err
+	}
+	return repos, nil
 }
 
 func (db *repoStore) Create(repo *model.Repo) error {
@@ -47,7 +56,7 @@ const repoTable = "repos"
 const repoNameQuery = `
 SELECT *
 FROM repos
-WHERE owner = ? AND name = ? 
+WHERE owner = ? AND name = ?
 LIMIT 1
 `
 
