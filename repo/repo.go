@@ -28,6 +28,14 @@ func NewRepo(r *model.Repo) *Repo {
 	return &Repo{r, RepoStorage}
 }
 
+func (r *Repo) InitDir() error {
+	return os.MkdirAll(r.Path(), 0755)
+}
+
+func (r *Repo) ClearPath() error {
+	return os.RemoveAll(r.Path())
+}
+
 func (r *Repo) Path() string {
 	return path.Join(r.basePath, r.Owner, r.Name)
 }

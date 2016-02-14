@@ -13,6 +13,7 @@ import (
 	"github.com/drone/drone/shared/crypto"
 	"github.com/gin-gonic/gin"
 	"github.com/mikkeloscar/maze/remote"
+	"github.com/mikkeloscar/maze/repo"
 	"github.com/mikkeloscar/maze/router/middleware/session"
 	"github.com/mikkeloscar/maze/store"
 	"github.com/satori/go.uuid"
@@ -56,6 +57,7 @@ func PostUploadFile(c *gin.Context) {
 
 	// TODO check valid filename
 	// TODO check valid file content
+	// TODO: clear session on error
 
 	new, err := repo.IsNewFilename(pkg)
 	if err != nil {
@@ -188,9 +190,22 @@ func PostRepo(c *gin.Context) {
 	r.LastCheck = time.Now().UTC().Add(-1 * time.Hour)
 	r.Hash = crypto.Rand()
 
+	fsRepo := repo.NewRepo(r)
+
+	err = fsRepo.InitDir()
+	if err != nil {
+		log.Errorf("failed to create repo storage path '%s' on disk: %s", fsRepo.Path(), err)
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+
 	err = store.CreateRepo(c, r)
 	if err != nil {
 		log.Errorf("failed to add repo: %s", err)
+		err = fsRepo.ClearPath()
+		if err != nil {
+			log.Errorf("failed to cleanup repo path '%s': %s", fsRepo.Path(), err)
+		}
 		c.AbortWithStatus(http.StatusInternalServerError)
 		return
 	}
