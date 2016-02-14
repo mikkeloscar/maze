@@ -21,8 +21,8 @@ func Load(middleware ...gin.HandlerFunc) *gin.Engine {
 		repo := repos.Group("")
 		{
 			repo.Use(session.SetRepo())
-			// repo.Use(session.SetPerm())
-			// TODO: permissions
+			repo.Use(session.SetRepoPerm())
+			// TODO: more advanced permissions
 
 			repo.GET("", controller.GetRepo)
 

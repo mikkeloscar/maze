@@ -39,3 +39,41 @@ func SetRepo() gin.HandlerFunc {
 		c.Next()
 	}
 }
+
+func RepoPerm(c *gin.Context) *model.Perm {
+	v, ok := c.Get("perm")
+	if !ok {
+		return nil
+	}
+	u, ok := v.(*model.Perm)
+	if !ok {
+		return nil
+	}
+	return u
+}
+
+func SetRepoPerm() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		user := User(c)
+		repo := Repo(c)
+		perm := &model.Perm{}
+
+		switch {
+		case user == nil:
+			perm.Pull = false
+			perm.Push = false
+			perm.Admin = false
+		case user.Admin:
+			perm.Pull = true
+			perm.Push = true
+			perm.Admin = true
+		case user.ID == repo.UserID:
+			perm.Pull = true
+			perm.Push = true
+			perm.Admin = true
+		}
+
+		c.Set("perm", perm)
+		c.Next()
+	}
+}
