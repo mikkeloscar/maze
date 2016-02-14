@@ -19,7 +19,7 @@ func ReadConfig(content io.ReadCloser) (*PkgConfig, error) {
 		return nil, err
 	}
 
-	var config *PkgConfig
+	config := new(PkgConfig)
 
 	err = yaml.Unmarshal(data, config)
 	if err != nil {

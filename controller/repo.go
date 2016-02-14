@@ -68,7 +68,7 @@ func PostUploadFile(c *gin.Context) {
 		return
 	}
 
-	pkg = path.Join(repo.Path, pkg)
+	pkg = path.Join(repo.Path(), pkg)
 
 	f, err := os.Create(pkg)
 	if err != nil {
@@ -185,7 +185,7 @@ func PostRepo(c *gin.Context) {
 	r.UserID = user.ID
 	r.Owner = owner
 	r.Name = name
-	r.LastCheck = time.Now().Add(-1 * time.Hour)
+	r.LastCheck = time.Now().UTC().Add(-1 * time.Hour)
 	r.Hash = crypto.Rand()
 
 	err = store.CreateRepo(c, r)

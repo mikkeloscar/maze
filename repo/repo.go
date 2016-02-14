@@ -21,11 +21,20 @@ var pkgPatt = regexp.MustCompile(`[a-z]+[a-z\-]+[a-z]+-(\d+:)?[\da-z\.]+-\d+-(i6
 // Repo is a wrapper around the arch tools 'repo-add' and 'repo-remove'.
 type Repo struct {
 	*model.Repo
+	basePath string
+}
+
+func NewRepo(r *model.Repo) *Repo {
+	return &Repo{r, RepoStorage}
+}
+
+func (r *Repo) Path() string {
+	return path.Join(r.basePath, r.Owner, r.Name)
 }
 
 // DB returns path to db archive.
 func (r *Repo) DB() string {
-	return path.Join(r.Path, fmt.Sprintf("%s.db.tar.gz", r.Name))
+	return path.Join(r.Path(), fmt.Sprintf("%s.db.tar.gz", r.Name))
 }
 
 // Add adds a list of packages to a repo db, moving the package files to
@@ -38,9 +47,9 @@ func (r *Repo) Add(pkgPaths []string) error {
 	for i, pkg := range pkgPaths {
 		pkgPathDir, pkgPathBase := path.Split(pkg)
 
-		if r.Path != pkgPathDir {
+		if r.Path() != pkgPathDir {
 			// move pkg to repo path.
-			newPath := path.Join(r.Path, pkgPathBase)
+			newPath := path.Join(r.Path(), pkgPathBase)
 			err := os.Rename(pkg, newPath)
 			if err != nil {
 				return err
@@ -53,7 +62,7 @@ func (r *Repo) Add(pkgPaths []string) error {
 	args = append(args, pkgPaths...)
 
 	cmd := exec.Command("repo-add", args...)
-	cmd.Dir = r.Path
+	cmd.Dir = r.Path()
 
 	return cmd.Run()
 }
@@ -64,7 +73,7 @@ func (r *Repo) Remove(pkgs []string) error {
 	args = append(args, pkgs...)
 
 	cmd := exec.Command("repo-remove", args...)
-	cmd.Dir = r.Path
+	cmd.Dir = r.Path()
 
 	return cmd.Run()
 }

@@ -17,7 +17,6 @@ CREATE TABLE repos (
 ,name          TEXT
 ,source_owner  TEXT
 ,source_name   TEXT
-,path          TEXT
 ,hash          TEXT
 ,last_check    DATETIME
 

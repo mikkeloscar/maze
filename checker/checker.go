@@ -44,7 +44,7 @@ func (c *Checker) update(u *model.User, r *repo.Repo) error {
 func (c *Checker) Run() {
 	for {
 		select {
-		case <-time.After(time.Minute * 5):
+		case <-time.After(time.Minute * 10):
 			// TODO: maybe run in goroutine
 			repos, err := c.Store.Repos().GetRepoList()
 			if err != nil {
@@ -60,7 +60,7 @@ func (c *Checker) Run() {
 				// only check for updates if last check was
 				// more than an hour ago
 				last := r.LastCheck.Add(1 * time.Hour)
-				if time.Now().Before(last) {
+				if time.Now().UTC().Before(last) {
 					continue
 				}
 
@@ -70,11 +70,15 @@ func (c *Checker) Run() {
 					break
 				}
 
-				err = c.update(user, &repo.Repo{r})
+				err = c.update(user, repo.NewRepo(r))
 				if err != nil {
 					log.Errorf("failed to request update: %s", err)
 					break
 				}
+
+				// update lastCheck
+				r.LastCheck = time.Now().UTC()
+				c.Store.Repos().Update(r)
 			}
 		}
 	}

@@ -2,13 +2,13 @@ package main
 
 import (
 	"flag"
-	"os"
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/drone/drone/shared/envconfig"
 	"github.com/gin-gonic/gin"
 	"github.com/mikkeloscar/maze/checker"
 	"github.com/mikkeloscar/maze/remote"
+	"github.com/mikkeloscar/maze/repo"
 	"github.com/mikkeloscar/maze/router"
 	"github.com/mikkeloscar/maze/router/middleware/context"
 	"github.com/mikkeloscar/maze/store/datastore"
@@ -28,10 +28,15 @@ func main() {
 	}
 
 	env := envconfig.Load(*envConf)
+
+	err := repo.LoadRepoStorage(env)
+	if err != nil {
+		log.Fatalf("repo storage error: %s", err)
+	}
+
 	store_, err := datastore.Load(env)
 	if err != nil {
-		log.Errorf("failed to load datastore: %s", err)
-		os.Exit(1)
+		log.Fatalf("failed to load datastore: %s", err)
 	}
 	remote_ := remote.Load(env)
 
