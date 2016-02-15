@@ -1,6 +1,8 @@
 package aur
 
 import (
+	"strings"
+
 	"github.com/mikkeloscar/aur"
 	"github.com/mikkeloscar/gopkgbuild"
 	"github.com/mikkeloscar/maze/repo"
@@ -28,12 +30,33 @@ func Updates(pkgs []string, repo *repo.Repo) ([]string, error) {
 			return nil, err
 		}
 
-		if new {
+		if new || isDevel(name) {
 			updates = append(updates, name)
 		}
 	}
 
 	return updates, nil
+}
+
+// returns true if the pkg is a devel package (ends on -{bzr,git,hg,svn}).
+func isDevel(pkg string) bool {
+	if strings.HasSuffix(pkg, "-git") {
+		return true
+	}
+
+	if strings.HasSuffix(pkg, "-svn") {
+		return true
+	}
+
+	if strings.HasSuffix(pkg, "-hg") {
+		return true
+	}
+
+	if strings.HasSuffix(pkg, "-bzr") {
+		return true
+	}
+
+	return false
 }
 
 // query the AUR for build deps to packages.
