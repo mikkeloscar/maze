@@ -6,11 +6,14 @@ import (
 	"compress/gzip"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"os"
 	"os/exec"
 	"path"
 	"regexp"
+	"strconv"
 	"strings"
+	"time"
 
 	"github.com/mikkeloscar/gopkgbuild"
 	"github.com/mikkeloscar/maze/model"
@@ -25,7 +28,11 @@ type Repo struct {
 }
 
 func NewRepo(r *model.Repo) *Repo {
-	return &Repo{r, RepoStorage}
+	return newRepo(r, RepoStorage)
+}
+
+func newRepo(r *model.Repo, basePath string) *Repo {
+	return &Repo{r, basePath}
 }
 
 func (r *Repo) InitDir() error {
@@ -43,6 +50,11 @@ func (r *Repo) Path() string {
 // DB returns path to db archive.
 func (r *Repo) DB() string {
 	return path.Join(r.Path(), fmt.Sprintf("%s.db.tar.gz", r.Name))
+}
+
+// FilesDB returns path to files db archive.
+func (r *Repo) FilesDB() string {
+	return path.Join(r.Path(), fmt.Sprintf("%s.files.tar.gz", r.Name))
 }
 
 // Add adds a list of packages to a repo db, moving the package files to
@@ -195,6 +207,140 @@ func inStrSlice(needle string, haystack []string) bool {
 	return false
 }
 
+// Packages returns a list of all packages in the repo.
+func (r *Repo) Packages(files bool) ([]*model.Package, error) {
+	var pkgs []*model.Package
+
+	f, err := os.Open(r.FilesDB())
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close()
+
+	gzf, err := gzip.NewReader(f)
+	if err != nil {
+		return nil, err
+	}
+
+	tarR := tar.NewReader(gzf)
+
+	var pkg *model.Package
+
+	for {
+		header, err := tarR.Next()
+		if err != nil {
+			if err != io.EOF {
+				return nil, err
+			}
+
+			break
+		}
+
+		switch header.Typeflag {
+		case tar.TypeDir:
+			if pkg != nil {
+				pkgs = append(pkgs, pkg)
+			}
+
+			pkg = &model.Package{}
+		case tar.TypeReg:
+			if strings.HasSuffix(header.Name, "/desc") {
+				rdr := bufio.NewReader(tarR)
+				var curr *string
+				var currTime *time.Time
+				var currSlice *[]string
+				for {
+					line, err := rdr.ReadString('\n')
+					if err != nil {
+						if err != io.EOF {
+							return nil, err
+						}
+
+						break
+					}
+
+					line = line[:len(line)-1]
+
+					switch line {
+					case `%FILENAME%`:
+						curr = &pkg.FileName
+					case `%NAME%`:
+						curr = &pkg.Name
+					case `%BASE%`:
+						curr = &pkg.Base
+					case `%VERSION%`:
+						curr = &pkg.Version
+					case `%DESC%`:
+						curr = &pkg.Desc
+					case `%CSIZE%`:
+						curr = &pkg.CSize
+					case `%ISIZE%`:
+						curr = &pkg.ISize
+					case `%MD5SUM%`:
+						curr = &pkg.MD5Sum
+					case `%SHA256SUM%`:
+						curr = &pkg.SHA256Sum
+					case `%URL%`:
+						curr = &pkg.URL
+					case `%LICENSE%`:
+						curr = &pkg.License
+					case `%ARCH%`:
+						curr = &pkg.Arch
+					case `%BUILDDATE%`:
+						currTime = &pkg.BuildDate
+					case `%PACKAGER%`:
+						curr = &pkg.Packager
+					case `%DEPENDS%`:
+						currSlice = &pkg.Depends
+					case `%MAKEDEPENDS%`:
+						currSlice = &pkg.MakeDepends
+					case `%OPTDEPENDS%`:
+						currSlice = &pkg.OptDepends
+					case ``:
+						curr = nil
+						currTime = nil
+						currSlice = nil
+					default:
+						if curr != nil {
+							*curr = line
+						}
+
+						if currTime != nil {
+							i, err := strconv.ParseInt(line, 10, 64)
+							if err != nil {
+								return nil, err
+							}
+							*currTime = time.Unix(i, 0)
+						}
+
+						if currSlice != nil {
+							*currSlice = append(*currSlice, line)
+						}
+					}
+				}
+			}
+			if strings.HasSuffix(header.Name, "/files") && files {
+				content, err := ioutil.ReadAll(tarR)
+				if err != nil {
+					return nil, err
+				}
+
+				pkg.Files = strings.Split(string(content), "\n")
+				pkg.Files = pkg.Files[1:]
+				if pkg.Files[len(pkg.Files)-1] == "" {
+					pkg.Files = pkg.Files[:len(pkg.Files)-1]
+				}
+			}
+		}
+	}
+
+	if pkg != nil {
+		pkgs = append(pkgs, pkg)
+	}
+
+	return pkgs, nil
+}
+
 // TODO: what is a needed dep?
 type pkgDep struct {
 	makedepends []string
@@ -246,13 +392,13 @@ func (r *Repo) readPkgMap() (map[string]*pkgDep, error) {
 					}
 
 					switch line {
-					case "%DEPENDS%":
+					case `%DEPENDS%`:
 						curr = pkg.depends
-					case "%MAKEDEPENDS%":
+					case `%MAKEDEPENDS%`:
 						curr = pkg.makedepends
-					case "%OPTDEPENDS%":
+					case `%OPTDEPENDS%`:
 						curr = pkg.optdepends
-					case "":
+					case ``:
 						if eof {
 							break
 						}

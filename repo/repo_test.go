@@ -2,23 +2,20 @@ package repo
 
 import (
 	"os"
+	"os/exec"
 	"path"
 	"testing"
 
 	"github.com/mikkeloscar/gopkgbuild"
+	"github.com/mikkeloscar/maze/model"
 	"github.com/stretchr/testify/assert"
 )
 
 var (
-	workdir, _ = os.Getwd()
-	repo1      = Repo{
-		Name: "repo1",
-		Path: path.Join(workdir, "test_files"),
-	}
-	repo2 = Repo{
-		Name: "repo2",
-		Path: path.Join(workdir, "test_files"),
-	}
+	workdir, _  = os.Getwd()
+	repoStorage = path.Join(workdir, "test_files")
+	repo1       = newRepo(&model.Repo{Name: "repo1"}, repoStorage)
+	repo2       = newRepo(&model.Repo{Name: "repo2"}, repoStorage)
 )
 
 // Test splitting name and version string.
@@ -64,11 +61,21 @@ func TestSplitFileNameVersion(t *testing.T) {
 }
 
 func TestAdd(t *testing.T) {
+	err := repo2.InitDir()
+	assert.NoError(t, err, "should not fail")
+
 	pkgPaths := []string{
-		"test_files/ca-certificates-20150402-1-any.pkg.tar.xz",
+		"test_files/repo2/ca-certificates-20150402-1-any.pkg.tar.xz",
 	}
 
-	err := repo2.Add(pkgPaths)
+	cmd := exec.Command(
+		"cp",
+		"test_files/repo1/ca-certificates-20150402-1-any.pkg.tar.xz",
+		"test_files/repo2/ca-certificates-20150402-1-any.pkg.tar.xz")
+	err = cmd.Run()
+	assert.NoError(t, err, "should not fail")
+
+	err = repo2.Add(pkgPaths)
 	assert.NoError(t, err, "should not fail")
 
 	err = repo2.Add([]string{})
@@ -79,11 +86,7 @@ func TestAdd(t *testing.T) {
 	assert.NoError(t, err, "should not fail")
 
 	// clean
-	err = os.Remove(repo2.DB())
-	assert.NoError(t, err, "should not fail")
-	err = os.Remove(repo2.DB() + ".old")
-	assert.NoError(t, err, "should not fail")
-	err = os.Remove(path.Join(repo2.Path, repo2.Name+".db"))
+	err = repo2.ClearPath()
 	assert.NoError(t, err, "should not fail")
 }
 
@@ -140,4 +143,14 @@ func TestinStrSlice(t *testing.T) {
 	haystack := []string{"a", "b"}
 	assert.True(t, inStrSlice("a", haystack), "should be true")
 	assert.False(t, inStrSlice("c", haystack), "should be false")
+}
+
+func TestPackages(t *testing.T) {
+	pkgs, err := repo1.Packages(false)
+	assert.NoError(t, err, "should not fail")
+	assert.Len(t, pkgs, 1, "should have length 1")
+
+	pkgs, err = repo1.Packages(true)
+	assert.NoError(t, err, "should not fail")
+	assert.Len(t, pkgs, 1, "should have length 1")
 }
