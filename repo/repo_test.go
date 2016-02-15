@@ -154,3 +154,10 @@ func TestPackages(t *testing.T) {
 	assert.NoError(t, err, "should not fail")
 	assert.Len(t, pkgs, 1, "should have length 1")
 }
+
+func TestPackage(t *testing.T) {
+	pkg, err := repo1.Package("ca-certificates", false)
+	assert.NoError(t, err, "should not fail")
+	assert.NotNil(t, pkg, "should not be nil")
+	assert.Equal(t, pkg.Name, "ca-certificates", "should be equal")
+}

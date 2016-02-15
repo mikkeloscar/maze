@@ -207,6 +207,149 @@ func inStrSlice(needle string, haystack []string) bool {
 	return false
 }
 
+func parsePackage(tarRdr io.Reader, pkg *model.Package) error {
+	rdr := bufio.NewReader(tarRdr)
+	var curr *string
+	var currTime *time.Time
+	var currSlice *[]string
+	for {
+		line, err := rdr.ReadString('\n')
+		if err != nil {
+			if err != io.EOF {
+				return err
+			}
+
+			break
+		}
+
+		line = line[:len(line)-1]
+
+		switch line {
+		case `%FILENAME%`:
+			curr = &pkg.FileName
+		case `%NAME%`:
+			curr = &pkg.Name
+		case `%BASE%`:
+			curr = &pkg.Base
+		case `%VERSION%`:
+			curr = &pkg.Version
+		case `%DESC%`:
+			curr = &pkg.Desc
+		case `%CSIZE%`:
+			curr = &pkg.CSize
+		case `%ISIZE%`:
+			curr = &pkg.ISize
+		case `%MD5SUM%`:
+			curr = &pkg.MD5Sum
+		case `%SHA256SUM%`:
+			curr = &pkg.SHA256Sum
+		case `%URL%`:
+			curr = &pkg.URL
+		case `%LICENSE%`:
+			curr = &pkg.License
+		case `%ARCH%`:
+			curr = &pkg.Arch
+		case `%BUILDDATE%`:
+			currTime = &pkg.BuildDate
+		case `%PACKAGER%`:
+			curr = &pkg.Packager
+		case `%DEPENDS%`:
+			currSlice = &pkg.Depends
+		case `%MAKEDEPENDS%`:
+			currSlice = &pkg.MakeDepends
+		case `%OPTDEPENDS%`:
+			currSlice = &pkg.OptDepends
+		case ``:
+			curr = nil
+			currTime = nil
+			currSlice = nil
+		default:
+			if curr != nil {
+				*curr = line
+			}
+
+			if currTime != nil {
+				i, err := strconv.ParseInt(line, 10, 64)
+				if err != nil {
+					return err
+				}
+				*currTime = time.Unix(i, 0)
+			}
+
+			if currSlice != nil {
+				*currSlice = append(*currSlice, line)
+			}
+		}
+	}
+
+	return nil
+}
+
+// Package returns a named package from the repo.
+func (r *Repo) Package(name string, files bool) (*model.Package, error) {
+	f, err := os.Open(r.FilesDB())
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close()
+
+	gzf, err := gzip.NewReader(f)
+	if err != nil {
+		return nil, err
+	}
+
+	tarR := tar.NewReader(gzf)
+
+	found := false
+	foundFiles := false
+	pkg := &model.Package{}
+
+	for {
+		if found && (foundFiles || !files) {
+			break
+		}
+
+		header, err := tarR.Next()
+		if err != nil {
+			if err != io.EOF {
+				return nil, err
+			}
+
+			break
+		}
+
+		switch header.Typeflag {
+		case tar.TypeReg:
+			pkgName, _ := splitNameVersion(header.Name)
+
+			if pkgName == name {
+				if strings.HasSuffix(header.Name, "/desc") {
+					err := parsePackage(tarR, pkg)
+					if err != nil {
+						return nil, err
+					}
+					found = true
+				}
+				if strings.HasSuffix(header.Name, "/files") && files {
+					content, err := ioutil.ReadAll(tarR)
+					if err != nil {
+						return nil, err
+					}
+
+					pkg.Files = strings.Split(string(content), "\n")
+					pkg.Files = pkg.Files[1:]
+					if pkg.Files[len(pkg.Files)-1] == "" {
+						pkg.Files = pkg.Files[:len(pkg.Files)-1]
+					}
+					foundFiles = true
+				}
+			}
+		}
+	}
+
+	return pkg, nil
+}
+
 // Packages returns a list of all packages in the repo.
 func (r *Repo) Packages(files bool) ([]*model.Package, error) {
 	var pkgs []*model.Package
@@ -245,78 +388,9 @@ func (r *Repo) Packages(files bool) ([]*model.Package, error) {
 			pkg = &model.Package{}
 		case tar.TypeReg:
 			if strings.HasSuffix(header.Name, "/desc") {
-				rdr := bufio.NewReader(tarR)
-				var curr *string
-				var currTime *time.Time
-				var currSlice *[]string
-				for {
-					line, err := rdr.ReadString('\n')
-					if err != nil {
-						if err != io.EOF {
-							return nil, err
-						}
-
-						break
-					}
-
-					line = line[:len(line)-1]
-
-					switch line {
-					case `%FILENAME%`:
-						curr = &pkg.FileName
-					case `%NAME%`:
-						curr = &pkg.Name
-					case `%BASE%`:
-						curr = &pkg.Base
-					case `%VERSION%`:
-						curr = &pkg.Version
-					case `%DESC%`:
-						curr = &pkg.Desc
-					case `%CSIZE%`:
-						curr = &pkg.CSize
-					case `%ISIZE%`:
-						curr = &pkg.ISize
-					case `%MD5SUM%`:
-						curr = &pkg.MD5Sum
-					case `%SHA256SUM%`:
-						curr = &pkg.SHA256Sum
-					case `%URL%`:
-						curr = &pkg.URL
-					case `%LICENSE%`:
-						curr = &pkg.License
-					case `%ARCH%`:
-						curr = &pkg.Arch
-					case `%BUILDDATE%`:
-						currTime = &pkg.BuildDate
-					case `%PACKAGER%`:
-						curr = &pkg.Packager
-					case `%DEPENDS%`:
-						currSlice = &pkg.Depends
-					case `%MAKEDEPENDS%`:
-						currSlice = &pkg.MakeDepends
-					case `%OPTDEPENDS%`:
-						currSlice = &pkg.OptDepends
-					case ``:
-						curr = nil
-						currTime = nil
-						currSlice = nil
-					default:
-						if curr != nil {
-							*curr = line
-						}
-
-						if currTime != nil {
-							i, err := strconv.ParseInt(line, 10, 64)
-							if err != nil {
-								return nil, err
-							}
-							*currTime = time.Unix(i, 0)
-						}
-
-						if currSlice != nil {
-							*currSlice = append(*currSlice, line)
-						}
-					}
+				err := parsePackage(tarR, pkg)
+				if err != nil {
+					return nil, err
 				}
 			}
 			if strings.HasSuffix(header.Name, "/files") && files {
