@@ -165,7 +165,7 @@ func DeleteRepo(c *gin.Context) {
 
 	err := repo.ClearPath()
 	if err != nil {
-		log.Errorf("failed to delete repo storage path '%s/%s': %s", repo.Owner, repo.Name, err)
+		log.Errorf("failed to delete repo storage '%s/%s': %s", repo.Owner, repo.Name, err)
 		c.AbortWithStatus(http.StatusInternalServerError)
 		return
 	}
