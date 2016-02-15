@@ -25,6 +25,16 @@ func Load(middleware ...gin.HandlerFunc) *gin.Engine {
 			// TODO: more advanced permissions
 
 			repo.GET("", controller.GetRepo)
+			// TODO: add permissions
+			repo.PATCH("", controller.PatchRepo)
+			repo.DELETE("", controller.DeleteRepo)
+
+			packages := repo.Group("/packages")
+			{
+				packages.GET("", controller.GetRepoPackages)
+				packages.GET("/:package", controller.GetRepoPackage)
+				packages.GET("/:package/files", controller.GetRepoPackageFiles)
+			}
 
 			upload := repo.Group("/upload")
 			{

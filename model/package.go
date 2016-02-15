@@ -20,5 +20,5 @@ type Package struct {
 	Depends     []string  `json:"depends"`
 	OptDepends  []string  `json:"optdepends"`
 	MakeDepends []string  `json:"makedpends"`
-	Files       []string  `json:"files"`
+	Files       []string  `json:"-"`
 }

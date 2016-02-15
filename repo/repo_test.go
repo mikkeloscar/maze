@@ -160,4 +160,9 @@ func TestPackage(t *testing.T) {
 	assert.NoError(t, err, "should not fail")
 	assert.NotNil(t, pkg, "should not be nil")
 	assert.Equal(t, pkg.Name, "ca-certificates", "should be equal")
+
+	// package that doesn't exist
+	pkg, err = repo1.Package("ca-certificates-foo", false)
+	assert.NoError(t, err, "should not fail")
+	assert.Nil(t, pkg, "should be nil")
 }

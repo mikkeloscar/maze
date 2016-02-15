@@ -302,7 +302,12 @@ func (r *Repo) Package(name string, files bool) (*model.Package, error) {
 
 	found := false
 	foundFiles := false
-	pkg := &model.Package{}
+	pkg := &model.Package{
+		Depends:     []string{},
+		OptDepends:  []string{},
+		MakeDepends: []string{},
+		Files:       []string{},
+	}
 
 	for {
 		if found && (foundFiles || !files) {
@@ -347,6 +352,10 @@ func (r *Repo) Package(name string, files bool) (*model.Package, error) {
 		}
 	}
 
+	if pkg.Name == "" {
+		return nil, nil
+	}
+
 	return pkg, nil
 }
 
@@ -385,7 +394,12 @@ func (r *Repo) Packages(files bool) ([]*model.Package, error) {
 				pkgs = append(pkgs, pkg)
 			}
 
-			pkg = &model.Package{}
+			pkg = &model.Package{
+				Depends:     []string{},
+				OptDepends:  []string{},
+				MakeDepends: []string{},
+				Files:       []string{},
+			}
 		case tar.TypeReg:
 			if strings.HasSuffix(header.Name, "/desc") {
 				err := parsePackage(tarR, pkg)

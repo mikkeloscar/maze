@@ -121,3 +121,106 @@ func PostRepo(c *gin.Context) {
 func GetRepo(c *gin.Context) {
 	c.JSON(http.StatusOK, session.Repo(c))
 }
+
+func PatchRepo(c *gin.Context) {
+	repo := session.Repo(c)
+
+	in := struct {
+		SourceOwner *string `json:"source_owner,omitempty"`
+		SourceName  *string `json:"source_name,omitempty"`
+		Name        *string `json:"name,omitempty"`
+	}{}
+
+	err := c.BindJSON(&in)
+	if err != nil {
+		log.Error(err)
+		c.AbortWithStatus(http.StatusBadRequest)
+		return
+	}
+
+	if in.SourceOwner != nil {
+		repo.SourceOwner = *in.SourceOwner
+	}
+
+	if in.SourceName != nil {
+		repo.SourceName = *in.SourceName
+	}
+
+	if in.Name != nil {
+		repo.Name = *in.Name
+	}
+
+	err = store.UpdateRepo(c, repo.Repo)
+	if err != nil {
+		log.Errorf("failed to update repo '%s/%s': %s", repo.Owner, repo.Name, err)
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+
+	c.JSON(http.StatusOK, repo)
+}
+
+func DeleteRepo(c *gin.Context) {
+	repo := session.Repo(c)
+
+	err := repo.ClearPath()
+	if err != nil {
+		log.Errorf("failed to delete repo storage path '%s/%s': %s", repo.Owner, repo.Name, err)
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+
+	err = store.DeleteRepo(c, repo.Repo)
+	if err != nil {
+		log.Errorf("failed to remove repo db entry '%s/%s': %s", repo.Owner, repo.Name, err)
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+
+	c.Status(http.StatusOK)
+}
+
+func GetRepoPackages(c *gin.Context) {
+	pkgs, err := session.Repo(c).Packages(false)
+	if err != nil {
+		log.Errorf("Failed to get repo packages: %s", err)
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+
+	c.JSON(http.StatusOK, pkgs)
+}
+
+func GetRepoPackage(c *gin.Context) {
+	pkgname := c.Param("package")
+	pkg, err := session.Repo(c).Package(pkgname, false)
+	if err != nil {
+		log.Errorf("Failed to get repo package '%s': %s", pkgname, err)
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+
+	if pkg == nil {
+		c.AbortWithStatus(http.StatusNotFound)
+		return
+	}
+
+	c.JSON(http.StatusOK, pkg)
+}
+
+func GetRepoPackageFiles(c *gin.Context) {
+	pkgname := c.Param("package")
+	pkg, err := session.Repo(c).Package(pkgname, true)
+	if err != nil {
+		log.Errorf("Failed to get repo package '%s': %s", pkgname, err)
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+
+	if pkg == nil {
+		c.AbortWithStatus(http.StatusNotFound)
+		return
+	}
+
+	c.JSON(http.StatusOK, pkg.Files)
+}
