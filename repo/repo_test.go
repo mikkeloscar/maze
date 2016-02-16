@@ -160,3 +160,16 @@ func TestPackage(t *testing.T) {
 	assert.NoError(t, err, "should not fail")
 	assert.Nil(t, pkg, "should be nil")
 }
+
+func TestValidRepoName(t *testing.T) {
+	assert.True(t, ValidRepoName("test"), "should be true")
+	assert.True(t, ValidRepoName("test123"), "should be true")
+	assert.True(t, ValidRepoName("test@"), "should be true")
+	assert.True(t, ValidRepoName("test."), "should be true")
+	assert.True(t, ValidRepoName("test_"), "should be true")
+	assert.True(t, ValidRepoName("test+"), "should be true")
+	assert.True(t, ValidRepoName("test-"), "should be true")
+	assert.False(t, ValidRepoName("@test"), "should be false")
+	assert.False(t, ValidRepoName("test="), "should be false")
+	assert.False(t, ValidRepoName("te st"), "should be false")
+}

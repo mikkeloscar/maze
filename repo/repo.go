@@ -22,6 +22,15 @@ import (
 
 var pkgPatt = regexp.MustCompile(`[a-z]+[a-z\-]+[a-z]+-(\d+:)?[\da-z\.]+-\d+-(i686|x86_64|any).pkg.tar.xz(.sig)?`)
 
+var pkgNamePatt = regexp.MustCompile(`^[a-z\d][a-z\d@._+-]*$`)
+
+// ValidRepoName returns true if the name is a valid repo name.
+// A valid name must only consist of lowercase alphanumerics and any of the
+// following characters: @,.,_,+,-, and it must start with an alphanumeric.
+func ValidRepoName(name string) bool {
+	return pkgNamePatt.MatchString(name)
+}
+
 // Repo is a wrapper around the arch tools 'repo-add' and 'repo-remove'.
 type Repo struct {
 	*model.Repo

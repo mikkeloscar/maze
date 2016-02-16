@@ -30,6 +30,11 @@ func PostRepo(c *gin.Context) {
 	owner := c.Param("owner")
 	name := c.Param("name")
 
+	if !repo.ValidRepoName(name) {
+		c.AbortWithStatus(http.StatusBadRequest)
+		return
+	}
+
 	if owner != user.Login {
 		c.AbortWithStatus(http.StatusUnauthorized)
 		return
@@ -123,7 +128,7 @@ func GetRepo(c *gin.Context) {
 }
 
 func PatchRepo(c *gin.Context) {
-	repo := session.Repo(c)
+	r := session.Repo(c)
 
 	in := struct {
 		SourceOwner *string `json:"source_owner,omitempty"`
@@ -139,25 +144,29 @@ func PatchRepo(c *gin.Context) {
 	}
 
 	if in.SourceOwner != nil {
-		repo.SourceOwner = *in.SourceOwner
+		r.SourceOwner = *in.SourceOwner
 	}
 
 	if in.SourceName != nil {
-		repo.SourceName = *in.SourceName
+		r.SourceName = *in.SourceName
 	}
 
 	if in.Name != nil {
-		repo.Name = *in.Name
+		r.Name = *in.Name
+		if !repo.ValidRepoName(r.Name) {
+			c.AbortWithStatus(http.StatusBadRequest)
+			return
+		}
 	}
 
-	err = store.UpdateRepo(c, repo.Repo)
+	err = store.UpdateRepo(c, r.Repo)
 	if err != nil {
-		log.Errorf("failed to update repo '%s/%s': %s", repo.Owner, repo.Name, err)
+		log.Errorf("failed to update repo '%s/%s': %s", r.Owner, r.Name, err)
 		c.AbortWithStatus(http.StatusInternalServerError)
 		return
 	}
 
-	c.JSON(http.StatusOK, repo)
+	c.JSON(http.StatusOK, r)
 }
 
 func DeleteRepo(c *gin.Context) {
