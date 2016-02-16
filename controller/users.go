@@ -8,7 +8,7 @@ import (
 )
 
 func GetUser(c *gin.Context) {
-	user, err := store.GetUserLogin(c, c.Param("login"))
+	user, err := store.GetUserLogin(c, c.Param("user"))
 	if err != nil {
 		c.AbortWithStatus(http.StatusNotFound)
 		return

@@ -65,7 +65,7 @@ func Load(middleware ...gin.HandlerFunc) http.Handler {
 	users := e.Group("/api/users")
 	{
 		user.Use(session.IsAdmin())
-		users.GET("/:login", controller.GetUser)
+		users.GET("/:user", controller.GetUser)
 	}
 
 	auth := e.Group("/authorize")
