@@ -3,37 +3,43 @@ package aur
 import (
 	"github.com/mikkeloscar/aur"
 	"github.com/mikkeloscar/gopkgbuild"
+	"github.com/mikkeloscar/maze/common/util"
 	"github.com/mikkeloscar/maze/repo"
 )
 
 // Updates check for updated packages based on a list of packages and a
 // repository. Returns a list of packages with updates.
-func Updates(pkgs []string, repo *repo.Repo) ([]string, error) {
+func Updates(pkgs []string, repo *repo.Repo) ([]string, []string, error) {
 	deps := make(map[string]string)
 	err := getDeps(pkgs, deps)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	updates := make([]string, 0)
+	checks := make([]string, 0)
 
 	for name, version := range deps {
 		compVersion, err := pkgbuild.NewCompleteVersion(version)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 
 		new, err := repo.IsNew(name, *compVersion)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 
 		if new {
 			updates = append(updates, name)
 		}
+
+		if util.IsDevel(name) && !new {
+			checks = append(checks, name)
+		}
 	}
 
-	return updates, nil
+	return updates, checks, nil
 }
 
 // query the AUR for build deps to packages.

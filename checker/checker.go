@@ -5,7 +5,6 @@ import (
 	"time"
 
 	log "github.com/Sirupsen/logrus"
-	"github.com/mikkeloscar/maze/common/util"
 	"github.com/mikkeloscar/maze/model"
 	"github.com/mikkeloscar/maze/remote"
 	"github.com/mikkeloscar/maze/repo"
@@ -26,19 +25,12 @@ func (c *Checker) update(u *model.User, r *repo.Repo) error {
 		return err
 	}
 
-	pkgs, err := aur.Updates(conf.AUR, r)
+	updatePkgs, checkPkgs, err := aur.Updates(conf.AUR, r)
 	if err != nil {
 		return err
 	}
 
-	checkPkgs := make([]string, 0)
-	for _, pkg := range conf.AUR {
-		if !util.StrContains(pkg, pkgs) && util.IsDevel(pkg) {
-			checkPkgs = append(checkPkgs, pkg)
-		}
-	}
-
-	for _, pkg := range pkgs {
+	for _, pkg := range updatePkgs {
 		// TODO: configurable branch names
 		err = c.Remote.EmptyCommit(u, r.SourceOwner, r.SourceName, "master", "build", fmt.Sprintf("update:%s:aur", pkg))
 		if err != nil {
