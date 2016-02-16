@@ -95,7 +95,7 @@ func PostRepo(c *gin.Context) {
 	r.LastCheck = time.Now().UTC().Add(-1 * time.Hour)
 	r.Hash = crypto.Rand()
 
-	fsRepo := repo.NewRepo(r)
+	fsRepo := repo.NewRepo(r, repo.RepoStorage)
 
 	err = fsRepo.InitDir()
 	if err != nil {

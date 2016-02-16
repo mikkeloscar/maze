@@ -21,7 +21,7 @@ func Repo(c *gin.Context) *repo.Repo {
 		return nil
 	}
 
-	return repo.NewRepo(r)
+	return repo.NewRepo(r, repo.RepoStorage)
 }
 
 func SetRepo() gin.HandlerFunc {

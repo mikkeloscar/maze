@@ -14,8 +14,8 @@ import (
 var (
 	workdir, _  = os.Getwd()
 	repoStorage = path.Join(workdir, "test_files")
-	repo1       = newRepo(&model.Repo{Name: "repo1"}, repoStorage)
-	repo2       = newRepo(&model.Repo{Name: "repo2"}, repoStorage)
+	repo1       = NewRepo(&model.Repo{Name: "repo1"}, repoStorage)
+	repo2       = NewRepo(&model.Repo{Name: "repo2"}, repoStorage)
 )
 
 // Test splitting name and version string.
@@ -137,12 +137,6 @@ func Testobsolete(t *testing.T) {
 	obsolete := repo1.obsolete(whiteList, pkgMap)
 	assert.Len(t, obsolete, 1, "should have length 1")
 	assert.Equal(t, "d", obsolete[0], "should be equal")
-}
-
-func TestinStrSlice(t *testing.T) {
-	haystack := []string{"a", "b"}
-	assert.True(t, inStrSlice("a", haystack), "should be true")
-	assert.False(t, inStrSlice("c", haystack), "should be false")
 }
 
 func TestPackages(t *testing.T) {

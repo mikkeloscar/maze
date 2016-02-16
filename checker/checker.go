@@ -5,6 +5,7 @@ import (
 	"time"
 
 	log "github.com/Sirupsen/logrus"
+	"github.com/mikkeloscar/maze/common/util"
 	"github.com/mikkeloscar/maze/model"
 	"github.com/mikkeloscar/maze/remote"
 	"github.com/mikkeloscar/maze/repo"
@@ -30,13 +31,29 @@ func (c *Checker) update(u *model.User, r *repo.Repo) error {
 		return err
 	}
 
+	checkPkgs := make([]string, 0)
+	for _, pkg := range conf.AUR {
+		if !util.StrContains(pkg, pkgs) && util.IsDevel(pkg) {
+			checkPkgs = append(checkPkgs, pkg)
+		}
+	}
+
 	for _, pkg := range pkgs {
 		// TODO: configurable branch names
-		err = c.Remote.EmptyCommit(u, r.SourceOwner, r.SourceName, "master", "build", fmt.Sprintf("%s:aur", pkg))
+		err = c.Remote.EmptyCommit(u, r.SourceOwner, r.SourceName, "master", "build", fmt.Sprintf("update:%s:aur", pkg))
 		if err != nil {
 			return err
 		}
 		log.Printf("Making update request for '%s'", pkg)
+	}
+
+	for _, pkg := range checkPkgs {
+		// TODO: configurable branch names
+		err = c.Remote.EmptyCommit(u, r.SourceOwner, r.SourceName, "master", "build", fmt.Sprintf("check:%s:aur", pkg))
+		if err != nil {
+			return err
+		}
+		log.Printf("Making check request for '%s'", pkg)
 	}
 	return nil
 }
@@ -72,7 +89,7 @@ func (c *Checker) Run() {
 					break
 				}
 
-				err = c.update(user, repo.NewRepo(r))
+				err = c.update(user, repo.NewRepo(r, repo.RepoStorage))
 				if err != nil {
 					log.Errorf("failed to request update: %s", err)
 					break

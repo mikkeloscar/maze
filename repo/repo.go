@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"github.com/mikkeloscar/gopkgbuild"
+	"github.com/mikkeloscar/maze/common/util"
 	"github.com/mikkeloscar/maze/model"
 )
 
@@ -27,11 +28,7 @@ type Repo struct {
 	basePath string
 }
 
-func NewRepo(r *model.Repo) *Repo {
-	return newRepo(r, RepoStorage)
-}
-
-func newRepo(r *model.Repo, basePath string) *Repo {
+func NewRepo(r *model.Repo, basePath string) *Repo {
 	return &Repo{r, basePath}
 }
 
@@ -174,7 +171,7 @@ func (r *Repo) obsolete(pkgs []string, pkgMap map[string]*pkgDep) []string {
 	var obsolete map[string]struct{}
 
 	for n := range pkgMap {
-		if !inStrSlice(n, pkgs) {
+		if !util.StrContains(n, pkgs) {
 			obsolete[n] = struct{}{}
 		}
 	}
@@ -196,15 +193,6 @@ func (r *Repo) obsolete(pkgs []string, pkgMap map[string]*pkgDep) []string {
 	}
 
 	return obsol
-}
-
-func inStrSlice(needle string, haystack []string) bool {
-	for _, item := range haystack {
-		if item == needle {
-			return true
-		}
-	}
-	return false
 }
 
 func parsePackage(tarRdr io.Reader, pkg *model.Package) error {
