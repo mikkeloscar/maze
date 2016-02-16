@@ -5,6 +5,7 @@ import (
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/drone/drone/shared/envconfig"
+	"github.com/drone/drone/shared/server"
 	"github.com/gin-gonic/gin"
 	"github.com/mikkeloscar/maze/checker"
 	"github.com/mikkeloscar/maze/remote"
@@ -48,8 +49,12 @@ func main() {
 	}
 	go chck.Run()
 
-	router.Load(
-		context.SetStore(store_),
-		context.SetRemote(remote_),
-	).Run(":8080")
+	// setup the server and start listening
+	server_ := server.Load(env)
+	server_.Run(
+		router.Load(
+			context.SetStore(store_),
+			context.SetRemote(remote_),
+		),
+	)
 }

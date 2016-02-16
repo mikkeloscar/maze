@@ -3,6 +3,7 @@ package controller
 import (
 	"fmt"
 	"net/http"
+	"path"
 	"strings"
 	"time"
 
@@ -14,6 +15,12 @@ import (
 	"github.com/mikkeloscar/maze/router/middleware/session"
 	"github.com/mikkeloscar/maze/store"
 )
+
+func ServeRepoFile(c *gin.Context) {
+	repo := session.Repo(c)
+	file := c.Param("file")
+	c.File(path.Join(repo.Path(), file))
+}
 
 func splitRepoName(source string) (string, string, error) {
 	split := strings.Split(source, "/")
