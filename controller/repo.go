@@ -19,8 +19,9 @@ import (
 
 func ServeRepoFile(c *gin.Context) {
 	repo := session.Repo(c)
+	arch := c.Param("arch")
 	file := c.Param("file")
-	c.File(path.Join(repo.Path(), file))
+	c.File(path.Join(repo.PathDeep(arch), file))
 }
 
 func splitRepoName(source string) (string, string, error) {
