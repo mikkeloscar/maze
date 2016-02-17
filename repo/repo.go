@@ -22,7 +22,7 @@ import (
 )
 
 var pkgPatt = regexp.MustCompile(`[a-z]+[a-z\-]+[a-z]+-(\d+:)?[\da-z\.]+-\d+-(i686|x86_64|any).pkg.tar.xz(.sig)?`)
-
+var removePatt = regexp.MustCompile(`Removing existing entry '([a-z\d@._+-]+)'`)
 var pkgNamePatt = regexp.MustCompile(`^[a-z\d][a-z\d@._+-]*$`)
 
 // ValidRepoName returns true if the name is a valid repo name.
@@ -90,7 +90,7 @@ func (r *Repo) Add(pkgPaths []string) error {
 		}
 	}
 
-	args := []string{"-R", r.DB()}
+	args := []string{"--nocolor", "-R", r.DB()}
 	args = append(args, pkgPaths...)
 
 	cmd := exec.Command("repo-add", args...)
@@ -103,7 +103,7 @@ func (r *Repo) Add(pkgPaths []string) error {
 
 // Remove removes a list of packages from the repo db.
 func (r *Repo) Remove(pkgs []string) error {
-	args := []string{"-R", r.DB()}
+	args := []string{"--nocolor", r.DB()}
 	args = append(args, pkgs...)
 
 	cmd := exec.Command("repo-remove", args...)
@@ -111,7 +111,39 @@ func (r *Repo) Remove(pkgs []string) error {
 
 	r.rwLock.Lock()
 	defer r.rwLock.Unlock()
-	return cmd.Run()
+	out, err := cmd.Output()
+	if err != nil {
+		return err
+	}
+
+	// remove repo file
+	lines := strings.Split(string(out), "\n")
+	for _, line := range lines {
+		if !strings.HasPrefix(line, "  ->") {
+			continue
+		}
+
+		match := removePatt.FindStringSubmatch(line)
+		if len(match) == 2 {
+			fs, err := ioutil.ReadDir(r.Path())
+			if err != nil {
+				return err
+			}
+
+			for _, f := range fs {
+				if !strings.HasPrefix(f.Name(), match[1]) {
+					continue
+				}
+
+				err := os.Remove(path.Join(r.Path(), f.Name()))
+				if err != nil {
+					return err
+				}
+			}
+		}
+	}
+
+	return nil
 }
 
 func (r *Repo) IsNewFilename(file string) (bool, error) {

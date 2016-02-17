@@ -41,6 +41,8 @@ func Load(middleware ...gin.HandlerFunc) http.Handler {
 			{
 				packages.GET("", controller.GetRepoPackages)
 				packages.GET("/:package", controller.GetRepoPackage)
+				// TODO: add permissions
+				packages.DELETE("/:package", controller.DeleteRepoPackage)
 				packages.GET("/:package/files", controller.GetRepoPackageFiles)
 			}
 

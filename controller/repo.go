@@ -240,3 +240,29 @@ func GetRepoPackageFiles(c *gin.Context) {
 
 	c.JSON(http.StatusOK, pkg.Files)
 }
+
+func DeleteRepoPackage(c *gin.Context) {
+	repo := session.Repo(c)
+	pkgname := c.Param("package")
+
+	pkg, err := repo.Package(pkgname, true)
+	if err != nil {
+		log.Errorf("Failed to get repo package '%s': %s", pkgname, err)
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+
+	if pkg == nil {
+		c.AbortWithStatus(http.StatusNotFound)
+		return
+	}
+
+	err = repo.Remove([]string{pkgname})
+	if err != nil {
+		log.Errorf("Failed to remove repo package '%s': %s", pkgname, err)
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+
+	c.Status(http.StatusOK)
+}

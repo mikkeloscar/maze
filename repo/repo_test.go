@@ -90,6 +90,35 @@ func TestAdd(t *testing.T) {
 	assert.NoError(t, err, "should not fail")
 }
 
+// Test Remove.
+func TestRemove(t *testing.T) {
+	// setup test repo
+	err := repo2.InitDir()
+	assert.NoError(t, err, "should not fail")
+
+	pkgPaths := []string{
+		"test_files/repo2/ca-certificates-20150402-1-any.pkg.tar.xz",
+	}
+
+	cmd := exec.Command(
+		"cp",
+		"test_files/repo1/ca-certificates-20150402-1-any.pkg.tar.xz",
+		"test_files/repo2/ca-certificates-20150402-1-any.pkg.tar.xz")
+	err = cmd.Run()
+	assert.NoError(t, err, "should not fail")
+
+	err = repo2.Add(pkgPaths)
+	assert.NoError(t, err, "should not fail")
+
+	// remove package
+	err = repo2.Remove([]string{"ca-certificates"})
+	assert.NoError(t, err, "should not fail")
+
+	// clean
+	err = repo2.ClearPath()
+	assert.NoError(t, err, "should not fail")
+}
+
 // Test IsNew.
 func TestIsNew(t *testing.T) {
 	pkg := "ca-certificates"
