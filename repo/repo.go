@@ -13,6 +13,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/mikkeloscar/gopkgbuild"
@@ -35,17 +36,22 @@ func ValidRepoName(name string) bool {
 type Repo struct {
 	*model.Repo
 	basePath string
+	rwLock   *sync.RWMutex
 }
 
 func NewRepo(r *model.Repo, basePath string) *Repo {
-	return &Repo{r, basePath}
+	return &Repo{r, basePath, new(sync.RWMutex)}
 }
 
 func (r *Repo) InitDir() error {
+	r.rwLock.Lock()
+	defer r.rwLock.Unlock()
 	return os.MkdirAll(r.Path(), 0755)
 }
 
 func (r *Repo) ClearPath() error {
+	r.rwLock.Lock()
+	defer r.rwLock.Unlock()
 	return os.RemoveAll(r.Path())
 }
 
@@ -90,6 +96,8 @@ func (r *Repo) Add(pkgPaths []string) error {
 	cmd := exec.Command("repo-add", args...)
 	cmd.Dir = r.Path()
 
+	r.rwLock.Lock()
+	defer r.rwLock.Unlock()
 	return cmd.Run()
 }
 
@@ -101,6 +109,8 @@ func (r *Repo) Remove(pkgs []string) error {
 	cmd := exec.Command("repo-remove", args...)
 	cmd.Dir = r.Path()
 
+	r.rwLock.Lock()
+	defer r.rwLock.Unlock()
 	return cmd.Run()
 }
 
@@ -121,6 +131,9 @@ func (r *Repo) IsNewFilename(file string) (bool, error) {
 // IsNew returns true if pkg is a newer version than what's in the repo.
 // If the package is not found in the repo, it will be marked as new.
 func (r *Repo) IsNew(name string, version pkgbuild.CompleteVersion) (bool, error) {
+	r.rwLock.RLock()
+	defer r.rwLock.RUnlock()
+
 	f, err := os.Open(r.DB())
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -284,6 +297,9 @@ func parsePackage(tarRdr io.Reader, pkg *model.Package) error {
 
 // Package returns a named package from the repo.
 func (r *Repo) Package(name string, files bool) (*model.Package, error) {
+	r.rwLock.RLock()
+	defer r.rwLock.RUnlock()
+
 	f, err := os.Open(r.FilesDB())
 	if err != nil {
 		return nil, err
@@ -358,6 +374,9 @@ func (r *Repo) Package(name string, files bool) (*model.Package, error) {
 
 // Packages returns a list of all packages in the repo.
 func (r *Repo) Packages(files bool) ([]*model.Package, error) {
+	r.rwLock.RLock()
+	defer r.rwLock.RUnlock()
+
 	var pkgs []*model.Package
 
 	f, err := os.Open(r.FilesDB())
