@@ -32,20 +32,20 @@ func (c *Checker) update(u *model.User, r *repo.Repo) error {
 
 	for _, pkg := range updatePkgs {
 		// TODO: configurable branch names
-		err = c.Remote.EmptyCommit(u, r.SourceOwner, r.SourceName, "master", "build", fmt.Sprintf("update:%s:aur", pkg))
+		err = c.Remote.EmptyCommit(u, r.SourceOwner, r.SourceName, "master", "build", fmt.Sprintf("update:%s:aur", pkg.Name))
 		if err != nil {
 			return err
 		}
-		log.Printf("Making update request for '%s'", pkg)
+		log.Printf("Making update request for '%s'", pkg.Name)
 	}
 
 	for _, pkg := range checkPkgs {
 		// TODO: configurable branch names
-		err = c.Remote.EmptyCommit(u, r.SourceOwner, r.SourceName, "master", "build", fmt.Sprintf("check:%s:aur", pkg))
+		err = c.Remote.EmptyCommit(u, r.SourceOwner, r.SourceName, "master", "build", fmt.Sprintf("check:%s:aur", pkg.Name))
 		if err != nil {
 			return err
 		}
-		log.Printf("Making check request for '%s'", pkg)
+		log.Printf("Making check request for '%s'", pkg.Name)
 	}
 	return nil
 }

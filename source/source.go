@@ -8,11 +8,17 @@ type Source interface {
 	Updates([]string, *repo.Repo) ([]string, error)
 }
 
-func Updates(typ string, pkgs []string, repo *repo.Repo) ([]string, error) {
-	switch typ {
-	case "aur":
-		return aur.Updates(pkgs, repo)
-	}
-
-	return nil, fmt.Errorf("invalid source type")
+type SourcePkg struct {
+	Name    string
+	Archs   []string
+	Version string
 }
+
+// func Updates(typ string, pkgs []string, repo *repo.Repo) ([]string, error) {
+// 	switch typ {
+// 	case "aur":
+// 		return aur.Updates(pkgs, repo)
+// 	}
+
+// 	return nil, fmt.Errorf("invalid source type")
+// }

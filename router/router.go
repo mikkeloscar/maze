@@ -19,7 +19,7 @@ func Load(middleware ...gin.HandlerFunc) http.Handler {
 	repo := e.Group("/repos/:owner/:name")
 	{
 		repo.Use(session.SetRepo())
-		repo.GET("/:file", controller.ServeRepoFile)
+		repo.GET("/:arch/:file", controller.ServeRepoFile)
 	}
 
 	repos := e.Group("/api/repos/:owner/:name")
@@ -37,7 +37,7 @@ func Load(middleware ...gin.HandlerFunc) http.Handler {
 			repo.PATCH("", controller.PatchRepo)
 			repo.DELETE("", controller.DeleteRepo)
 
-			packages := repo.Group("/packages")
+			packages := repo.Group("/:arch")
 			{
 				packages.GET("", controller.GetRepoPackages)
 				packages.GET("/:package", controller.GetRepoPackage)

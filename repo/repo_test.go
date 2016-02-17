@@ -35,28 +35,31 @@ func TestSplitNameVersion(t *testing.T) {
 
 // Test splitting name and version filename.
 func TestSplitFileNameVersion(t *testing.T) {
-	name, version, err := splitFileNameVersion("ca-certificates-20150402-1-any.pkg.tar.xz")
+	name, version, arch, err := splitFileNameVersion("ca-certificates-20150402-1-any.pkg.tar.xz")
 	assert.NoError(t, err, "should not fail")
 	assert.Equal(t, "ca-certificates", name, "should be equal")
+	assert.Equal(t, "any", arch, "should be equal")
 	assert.Equal(t, "20150402-1", version, "should be equal")
 
-	name, version, err = splitFileNameVersion("ca-certificates-2:20150402-1-any.pkg.tar.xz")
+	name, version, arch, err = splitFileNameVersion("ca-certificates-2:20150402-1-any.pkg.tar.xz")
 	assert.NoError(t, err, "should not fail")
 	assert.Equal(t, "ca-certificates", name, "should be equal")
+	assert.Equal(t, "any", arch, "should be equal")
 	assert.Equal(t, "2:20150402-1", version, "should be equal")
 
-	name, version, err = splitFileNameVersion("zlib-1.2.8-4-any.pkg.tar.xz")
+	name, version, arch, err = splitFileNameVersion("zlib-1.2.8-4-x86_64.pkg.tar.xz")
 	assert.NoError(t, err, "should not fail")
 	assert.Equal(t, "zlib", name, "should be equal")
+	assert.Equal(t, "x86_64", arch, "should be equal")
 	assert.Equal(t, "1.2.8-4", version, "should be equal")
 
-	name, version, err = splitFileNameVersion("zlib-1.2.8-any.pkg.tar.xz")
+	_, _, _, err = splitFileNameVersion("zlib-1.2.8-any.pkg.tar.xz")
 	assert.Error(t, err, "should fail")
 
-	name, version, err = splitFileNameVersion("zlib1.2.8-4-any.pkg.tar.xz")
+	_, _, _, err = splitFileNameVersion("zlib1.2.8-4-any.pkg.tar.xz")
 	assert.Error(t, err, "should fail")
 
-	name, version, err = splitFileNameVersion("zlib-1.2.8-4-any.pkg.tar.xz")
+	_, _, _, err = splitFileNameVersion("zlib-1.2.8-4-any.pkg.tar.xz")
 	assert.NoError(t, err, "should not fail")
 }
 
@@ -65,13 +68,13 @@ func TestAdd(t *testing.T) {
 	assert.NoError(t, err, "should not fail")
 
 	pkgPaths := []string{
-		"test_files/repo2/ca-certificates-20150402-1-any.pkg.tar.xz",
+		"test_files/repo2/x86_64/ca-certificates-20150402-1-any.pkg.tar.xz",
 	}
 
 	cmd := exec.Command(
 		"cp",
-		"test_files/repo1/ca-certificates-20150402-1-any.pkg.tar.xz",
-		"test_files/repo2/ca-certificates-20150402-1-any.pkg.tar.xz")
+		"test_files/repo1/x86_64/ca-certificates-20150402-1-any.pkg.tar.xz",
+		"test_files/repo2/x86_64/ca-certificates-20150402-1-any.pkg.tar.xz")
 	err = cmd.Run()
 	assert.NoError(t, err, "should not fail")
 
@@ -97,13 +100,13 @@ func TestRemove(t *testing.T) {
 	assert.NoError(t, err, "should not fail")
 
 	pkgPaths := []string{
-		"test_files/repo2/ca-certificates-20150402-1-any.pkg.tar.xz",
+		"test_files/repo2/x86_64/ca-certificates-20150402-1-any.pkg.tar.xz",
 	}
 
 	cmd := exec.Command(
 		"cp",
-		"test_files/repo1/ca-certificates-20150402-1-any.pkg.tar.xz",
-		"test_files/repo2/ca-certificates-20150402-1-any.pkg.tar.xz")
+		"test_files/repo1/x86_64/ca-certificates-20150402-1-any.pkg.tar.xz",
+		"test_files/repo2/x86_64/ca-certificates-20150402-1-any.pkg.tar.xz")
 	err = cmd.Run()
 	assert.NoError(t, err, "should not fail")
 
@@ -111,7 +114,7 @@ func TestRemove(t *testing.T) {
 	assert.NoError(t, err, "should not fail")
 
 	// remove package
-	err = repo2.Remove([]string{"ca-certificates"})
+	err = repo2.Remove([]string{"ca-certificates"}, "x86_64")
 	assert.NoError(t, err, "should not fail")
 
 	// clean
@@ -125,25 +128,25 @@ func TestIsNew(t *testing.T) {
 
 	// Check if existing package is new
 	version, _ := pkgbuild.NewCompleteVersion("20150402-1")
-	new, err := repo1.IsNew(pkg, *version)
+	new, err := repo1.IsNew(pkg, "any", *version)
 	assert.NoError(t, err, "should not fail")
 	assert.False(t, new, "should be false")
 
 	// Check if new package is new
 	version, _ = pkgbuild.NewCompleteVersion("20150402-2")
-	new, err = repo1.IsNew(pkg, *version)
+	new, err = repo1.IsNew(pkg, "any", *version)
 	assert.NoError(t, err, "should not fail")
 	assert.True(t, new, "should be true")
 
 	// Check if old package is new
 	version, _ = pkgbuild.NewCompleteVersion("20150401-1")
-	new, err = repo1.IsNew(pkg, *version)
+	new, err = repo1.IsNew(pkg, "any", *version)
 	assert.NoError(t, err, "should not fail")
 	assert.False(t, new, "should be false")
 
 	// Check if existing package is new (repo is empty)
 	version, _ = pkgbuild.NewCompleteVersion("20150402-1")
-	new, err = repo2.IsNew(pkg, *version)
+	new, err = repo2.IsNew(pkg, "any", *version)
 	assert.NoError(t, err, "should not fail")
 	assert.True(t, new, "should be true")
 }
@@ -169,23 +172,23 @@ func Testobsolete(t *testing.T) {
 }
 
 func TestPackages(t *testing.T) {
-	pkgs, err := repo1.Packages(false)
+	pkgs, err := repo1.Packages("x86_64", false)
 	assert.NoError(t, err, "should not fail")
 	assert.Len(t, pkgs, 1, "should have length 1")
 
-	pkgs, err = repo1.Packages(true)
+	pkgs, err = repo1.Packages("x86_64", true)
 	assert.NoError(t, err, "should not fail")
 	assert.Len(t, pkgs, 1, "should have length 1")
 }
 
 func TestPackage(t *testing.T) {
-	pkg, err := repo1.Package("ca-certificates", false)
+	pkg, err := repo1.Package("ca-certificates", "x86_64", false)
 	assert.NoError(t, err, "should not fail")
 	assert.NotNil(t, pkg, "should not be nil")
 	assert.Equal(t, pkg.Name, "ca-certificates", "should be equal")
 
 	// package that doesn't exist
-	pkg, err = repo1.Package("ca-certificates-foo", false)
+	pkg, err = repo1.Package("ca-certificates-foo", "x86_64", false)
 	assert.NoError(t, err, "should not fail")
 	assert.Nil(t, pkg, "should be nil")
 }

@@ -21,7 +21,7 @@ import (
 	"github.com/mikkeloscar/maze/model"
 )
 
-var pkgPatt = regexp.MustCompile(`[a-z]+[a-z\-]+[a-z]+-(\d+:)?[\da-z\.]+-\d+-(i686|x86_64|any).pkg.tar.xz(.sig)?`)
+var pkgPatt = regexp.MustCompile(`([a-z]+[a-z\-]+[a-z]+)-((\d+:)?([\da-z\.]+-\d+))-(i686|x86_64|any).pkg.tar.xz(.sig)?`)
 var removePatt = regexp.MustCompile(`Removing existing entry '([a-z\d@._+-]+)'`)
 var pkgNamePatt = regexp.MustCompile(`^[a-z\d][a-z\d@._+-]*$`)
 
@@ -32,21 +32,53 @@ func ValidRepoName(name string) bool {
 	return pkgNamePatt.MatchString(name)
 }
 
+// ValidArchs returns true if all archs in the list are valid.
+func ValidArchs(archs []string) bool {
+	for _, arch := range archs {
+		if !ValidArch(arch) {
+			return false
+		}
+	}
+
+	return true
+}
+
+// ValidArch returns true if the arch string is valid.
+func ValidArch(arch string) bool {
+	switch arch {
+	case "x86_64":
+		// fallthrough
+		// case "i686":
+		return true
+	default:
+		return false
+	}
+}
+
 // Repo is a wrapper around the arch tools 'repo-add' and 'repo-remove'.
 type Repo struct {
 	*model.Repo
 	basePath string
+	Archs    []string // TODO: move to model.Repo
 	rwLock   *sync.RWMutex
 }
 
 func NewRepo(r *model.Repo, basePath string) *Repo {
-	return &Repo{r, basePath, new(sync.RWMutex)}
+	return &Repo{r, basePath, []string{"x86_64"}, new(sync.RWMutex)}
 }
 
 func (r *Repo) InitDir() error {
 	r.rwLock.Lock()
 	defer r.rwLock.Unlock()
-	return os.MkdirAll(r.Path(), 0755)
+
+	for _, arch := range r.Archs {
+		err := os.MkdirAll(r.PathDeep(arch), 0755)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func (r *Repo) ClearPath() error {
@@ -59,14 +91,18 @@ func (r *Repo) Path() string {
 	return path.Join(r.basePath, r.Owner, r.Name)
 }
 
+func (r *Repo) PathDeep(arch string) string {
+	return path.Join(r.Path(), arch)
+}
+
 // DB returns path to db archive.
-func (r *Repo) DB() string {
-	return path.Join(r.Path(), fmt.Sprintf("%s.db.tar.gz", r.Name))
+func (r *Repo) DB(arch string) string {
+	return path.Join(r.PathDeep(arch), fmt.Sprintf("%s.db.tar.gz", r.Name))
 }
 
 // FilesDB returns path to files db archive.
-func (r *Repo) FilesDB() string {
-	return path.Join(r.Path(), fmt.Sprintf("%s.files.tar.gz", r.Name))
+func (r *Repo) FilesDB(arch string) string {
+	return path.Join(r.PathDeep(arch), fmt.Sprintf("%s.files.tar.gz", r.Name))
 }
 
 // Add adds a list of packages to a repo db, moving the package files to
@@ -76,38 +112,59 @@ func (r *Repo) Add(pkgPaths []string) error {
 		return nil
 	}
 
-	for i, pkg := range pkgPaths {
-		pkgPathDir, pkgPathBase := path.Split(pkg)
+	archPkgs := make(map[string][]string)
 
-		if r.Path() != pkgPathDir {
-			// move pkg to repo path.
-			newPath := path.Join(r.Path(), pkgPathBase)
-			err := os.Rename(pkg, newPath)
-			if err != nil {
-				return err
+	for _, pkg := range pkgPaths {
+		pkgPathDir, pkgPathBase := path.Split(pkg)
+		_, _, arch, err := splitFileNameVersion(pkgPathBase)
+		if err != nil {
+			return err
+		}
+
+		archs := []string{arch}
+
+		if arch == "any" {
+			archs = r.Archs
+		}
+
+		for _, arch := range archs {
+			if r.PathDeep(arch) != pkgPathDir {
+				// move pkg to repo path.
+				newPath := path.Join(r.PathDeep(arch), pkgPathBase)
+				err := os.Rename(pkg, newPath)
+				if err != nil {
+					return err
+				}
+				archPkgs[arch] = append(archPkgs[arch], newPath)
 			}
-			pkgPaths[i] = newPath
 		}
 	}
 
-	args := []string{"--nocolor", "-R", r.DB()}
-	args = append(args, pkgPaths...)
-
-	cmd := exec.Command("repo-add", args...)
-	cmd.Dir = r.Path()
-
 	r.rwLock.Lock()
 	defer r.rwLock.Unlock()
-	return cmd.Run()
+	for arch, pkgs := range archPkgs {
+		args := []string{"--nocolor", "-R", r.DB(arch)}
+		args = append(args, pkgs...)
+
+		cmd := exec.Command("repo-add", args...)
+		cmd.Dir = r.PathDeep(arch)
+
+		err := cmd.Run()
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 // Remove removes a list of packages from the repo db.
-func (r *Repo) Remove(pkgs []string) error {
-	args := []string{"--nocolor", r.DB()}
+func (r *Repo) Remove(pkgs []string, arch string) error {
+	args := []string{"--nocolor", r.DB(arch)}
 	args = append(args, pkgs...)
 
 	cmd := exec.Command("repo-remove", args...)
-	cmd.Dir = r.Path()
+	cmd.Dir = r.PathDeep(arch)
 
 	r.rwLock.Lock()
 	defer r.rwLock.Unlock()
@@ -125,7 +182,7 @@ func (r *Repo) Remove(pkgs []string) error {
 
 		match := removePatt.FindStringSubmatch(line)
 		if len(match) == 2 {
-			fs, err := ioutil.ReadDir(r.Path())
+			fs, err := ioutil.ReadDir(r.PathDeep(arch))
 			if err != nil {
 				return err
 			}
@@ -135,7 +192,7 @@ func (r *Repo) Remove(pkgs []string) error {
 					continue
 				}
 
-				err := os.Remove(path.Join(r.Path(), f.Name()))
+				err := os.Remove(path.Join(r.PathDeep(arch), f.Name()))
 				if err != nil {
 					return err
 				}
@@ -146,8 +203,11 @@ func (r *Repo) Remove(pkgs []string) error {
 	return nil
 }
 
+// IsNewFilename returns true if pkgfile is a newer version than what's in the
+// repo.
+// If the package is not found in the repo, it will be marked as new.
 func (r *Repo) IsNewFilename(file string) (bool, error) {
-	name, version, err := splitFileNameVersion(file)
+	name, arch, version, err := splitFileNameVersion(file)
 	if err != nil {
 		return false, err
 	}
@@ -157,52 +217,62 @@ func (r *Repo) IsNewFilename(file string) (bool, error) {
 		return false, err
 	}
 
-	return r.IsNew(name, *ver)
+	return r.IsNew(name, arch, *ver)
 }
 
 // IsNew returns true if pkg is a newer version than what's in the repo.
 // If the package is not found in the repo, it will be marked as new.
-func (r *Repo) IsNew(name string, version pkgbuild.CompleteVersion) (bool, error) {
+func (r *Repo) IsNew(name, arch string, version pkgbuild.CompleteVersion) (bool, error) {
 	r.rwLock.RLock()
 	defer r.rwLock.RUnlock()
 
-	f, err := os.Open(r.DB())
-	if err != nil {
-		if os.IsNotExist(err) {
-			return true, nil
-		}
-		return false, err
-	}
-	defer f.Close()
+	archs := []string{arch}
 
-	gzf, err := gzip.NewReader(f)
-	if err != nil {
-		return false, err
+	if arch == "any" {
+		archs = r.Archs
 	}
 
-	tarR := tar.NewReader(gzf)
+Loop:
+	for _, arch := range archs {
 
-	for {
-		header, err := tarR.Next()
-		if err == io.EOF {
-			break
+		f, err := os.Open(r.DB(arch))
+		if err != nil {
+			if os.IsNotExist(err) {
+				break
+			}
+			return false, err
 		}
+		defer f.Close()
 
+		gzf, err := gzip.NewReader(f)
 		if err != nil {
 			return false, err
 		}
 
-		switch header.Typeflag {
-		case tar.TypeDir:
-			n, v := splitNameVersion(header.Name)
-			if n == name {
-				if version.Newer(v) {
-					return true, nil
-				}
-				return false, nil
+		tarR := tar.NewReader(gzf)
+
+		for {
+			header, err := tarR.Next()
+			if err == io.EOF {
+				break
 			}
-		case tar.TypeReg:
-			continue
+
+			if err != nil {
+				return false, err
+			}
+
+			switch header.Typeflag {
+			case tar.TypeDir:
+				n, v := splitNameVersion(header.Name)
+				if n == name {
+					if version.Newer(v) {
+						break Loop
+					}
+					return false, nil
+				}
+			case tar.TypeReg:
+				continue
+			}
 		}
 	}
 
@@ -212,8 +282,8 @@ func (r *Repo) IsNew(name string, version pkgbuild.CompleteVersion) (bool, error
 // Obsolete returns a list of obsolete packages based on the input packages.
 // A package is considered obsolete if it's not in the input list and not a
 // dependency of one of the input packages.
-func (r *Repo) Obsolete(pkgs []string) ([]string, error) {
-	pkgMap, err := r.readPkgMap()
+func (r *Repo) Obsolete(pkgs []string, arch string) ([]string, error) {
+	pkgMap, err := r.readPkgMap(arch)
 	if err != nil {
 		return nil, err
 	}
@@ -328,11 +398,11 @@ func parsePackage(tarRdr io.Reader, pkg *model.Package) error {
 }
 
 // Package returns a named package from the repo.
-func (r *Repo) Package(name string, files bool) (*model.Package, error) {
+func (r *Repo) Package(name, arch string, files bool) (*model.Package, error) {
 	r.rwLock.RLock()
 	defer r.rwLock.RUnlock()
 
-	f, err := os.Open(r.FilesDB())
+	f, err := os.Open(r.FilesDB(arch))
 	if err != nil {
 		return nil, err
 	}
@@ -405,13 +475,13 @@ func (r *Repo) Package(name string, files bool) (*model.Package, error) {
 }
 
 // Packages returns a list of all packages in the repo.
-func (r *Repo) Packages(files bool) ([]*model.Package, error) {
+func (r *Repo) Packages(arch string, files bool) ([]*model.Package, error) {
 	r.rwLock.RLock()
 	defer r.rwLock.RUnlock()
 
 	var pkgs []*model.Package
 
-	f, err := os.Open(r.FilesDB())
+	f, err := os.Open(r.FilesDB(arch))
 	if err != nil {
 		return nil, err
 	}
@@ -484,10 +554,10 @@ type pkgDep struct {
 	optdepends  []string
 }
 
-func (r *Repo) readPkgMap() (map[string]*pkgDep, error) {
+func (r *Repo) readPkgMap(arch string) (map[string]*pkgDep, error) {
 	pkgMap := make(map[string]*pkgDep)
 
-	f, err := os.Open(r.DB())
+	f, err := os.Open(r.DB(arch))
 	if err != nil {
 		return nil, err
 	}
@@ -560,16 +630,12 @@ func splitNameVersion(str string) (string, string) {
 	return strings.Join(name, "-"), strings.Join(version, "-")
 }
 
-// turn "zlib-1.2.8-4-x86_64.pkg.tar.xz" into ("zlib", "1.2.8-4").
-func splitFileNameVersion(file string) (string, string, error) {
-	if pkgPatt.MatchString(file) {
-		sections := strings.Split(file, "-")
-		if len(sections) > 3 {
-			name := sections[:len(sections)-3]
-			version := sections[len(sections)-3 : len(sections)-1]
-			return strings.Join(name, "-"), strings.Join(version, "-"), nil
-		}
+// turn "zlib-1.2.8-4-x86_64.pkg.tar.xz" into ("zlib", "1.2.8-4", "x86_64").
+func splitFileNameVersion(file string) (string, string, string, error) {
+	match := pkgPatt.FindStringSubmatch(file)
+	if len(match) > 0 {
+		return match[1], match[2], match[5], nil
 	}
 
-	return "", "", fmt.Errorf("invalid package filename")
+	return "", "", "", fmt.Errorf("invalid package filename")
 }

@@ -10,6 +10,7 @@ import (
 	log "github.com/Sirupsen/logrus"
 	"github.com/drone/drone/shared/crypto"
 	"github.com/gin-gonic/gin"
+	"github.com/mikkeloscar/maze/common/util"
 	"github.com/mikkeloscar/maze/remote"
 	"github.com/mikkeloscar/maze/repo"
 	"github.com/mikkeloscar/maze/router/middleware/session"
@@ -48,11 +49,21 @@ func PostRepo(c *gin.Context) {
 	}
 
 	in := struct {
-		SourceRepo string `json:"source_repo" binding:"required"`
+		SourceRepo string   `json:"source_repo" binding:"required"`
+		Archs      []string `json:"archs"`
 	}{}
 	err := c.BindJSON(&in)
 	if err != nil {
 		log.Errorf("failed to parse request body: %s", err)
+		c.AbortWithStatus(http.StatusBadRequest)
+		return
+	}
+
+	if len(in.Archs) == 0 {
+		in.Archs = []string{"x86_64"}
+	}
+
+	if !repo.ValidArchs(in.Archs) {
 		c.AbortWithStatus(http.StatusBadRequest)
 		return
 	}
@@ -197,7 +208,15 @@ func DeleteRepo(c *gin.Context) {
 }
 
 func GetRepoPackages(c *gin.Context) {
-	pkgs, err := session.Repo(c).Packages(false)
+	repo := session.Repo(c)
+	arch := c.Param("arch")
+
+	if !util.StrContains(arch, repo.Archs) {
+		c.AbortWithStatus(http.StatusNotFound)
+		return
+	}
+
+	pkgs, err := repo.Packages(arch, false)
 	if err != nil {
 		log.Errorf("Failed to get repo packages: %s", err)
 		c.AbortWithStatus(http.StatusInternalServerError)
@@ -208,8 +227,16 @@ func GetRepoPackages(c *gin.Context) {
 }
 
 func GetRepoPackage(c *gin.Context) {
+	repo := session.Repo(c)
 	pkgname := c.Param("package")
-	pkg, err := session.Repo(c).Package(pkgname, false)
+	arch := c.Param("arch")
+
+	if !util.StrContains(arch, repo.Archs) {
+		c.AbortWithStatus(http.StatusNotFound)
+		return
+	}
+
+	pkg, err := repo.Package(pkgname, arch, false)
 	if err != nil {
 		log.Errorf("Failed to get repo package '%s': %s", pkgname, err)
 		c.AbortWithStatus(http.StatusInternalServerError)
@@ -225,8 +252,16 @@ func GetRepoPackage(c *gin.Context) {
 }
 
 func GetRepoPackageFiles(c *gin.Context) {
+	repo := session.Repo(c)
 	pkgname := c.Param("package")
-	pkg, err := session.Repo(c).Package(pkgname, true)
+	arch := c.Param("arch")
+
+	if !util.StrContains(arch, repo.Archs) {
+		c.AbortWithStatus(http.StatusNotFound)
+		return
+	}
+
+	pkg, err := repo.Package(pkgname, arch, true)
 	if err != nil {
 		log.Errorf("Failed to get repo package '%s': %s", pkgname, err)
 		c.AbortWithStatus(http.StatusInternalServerError)
@@ -244,8 +279,14 @@ func GetRepoPackageFiles(c *gin.Context) {
 func DeleteRepoPackage(c *gin.Context) {
 	repo := session.Repo(c)
 	pkgname := c.Param("package")
+	arch := c.Param("arch")
 
-	pkg, err := repo.Package(pkgname, true)
+	if !util.StrContains(arch, repo.Archs) {
+		c.AbortWithStatus(http.StatusNotFound)
+		return
+	}
+
+	pkg, err := repo.Package(pkgname, arch, true)
 	if err != nil {
 		log.Errorf("Failed to get repo package '%s': %s", pkgname, err)
 		c.AbortWithStatus(http.StatusInternalServerError)
@@ -257,7 +298,7 @@ func DeleteRepoPackage(c *gin.Context) {
 		return
 	}
 
-	err = repo.Remove([]string{pkgname})
+	err = repo.Remove([]string{pkgname}, arch)
 	if err != nil {
 		log.Errorf("Failed to remove repo package '%s': %s", pkgname, err)
 		c.AbortWithStatus(http.StatusInternalServerError)
