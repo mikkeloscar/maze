@@ -13,6 +13,7 @@ CREATE TABLE users (
 CREATE TABLE repos (
  id            INTEGER PRIMARY KEY AUTOINCREMENT
 ,user_id       INTEGER
+,private       BOOLEAN
 ,owner         TEXT
 ,name          TEXT
 ,source_owner  TEXT

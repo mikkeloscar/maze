@@ -50,8 +50,9 @@ func PostRepo(c *gin.Context) {
 	}
 
 	in := struct {
-		SourceRepo string   `json:"source_repo" binding:"required"`
-		Archs      []string `json:"archs"`
+		SourceRepo *string   `json:"source_repo" binding:"required"`
+		Archs      *[]string `json:"archs,omitempty"`
+		Private    *bool     `json:"private,omitempty"`
 	}{}
 	err := c.BindJSON(&in)
 	if err != nil {
@@ -60,16 +61,20 @@ func PostRepo(c *gin.Context) {
 		return
 	}
 
-	if len(in.Archs) == 0 {
-		in.Archs = []string{"x86_64"}
+	if in.Private == nil {
+		*in.Private = false
 	}
 
-	if !repo.ValidArchs(in.Archs) {
+	if in.Archs == nil || len(*in.Archs) == 0 {
+		*in.Archs = []string{"x86_64"}
+	}
+
+	if !repo.ValidArchs(*in.Archs) {
 		c.AbortWithStatus(http.StatusBadRequest)
 		return
 	}
 
-	sourceOwner, sourceName, err := splitRepoName(in.SourceRepo)
+	sourceOwner, sourceName, err := splitRepoName(*in.SourceRepo)
 	if err != nil {
 		log.Error(err)
 		c.AbortWithStatus(http.StatusBadRequest)
@@ -116,6 +121,7 @@ func PostRepo(c *gin.Context) {
 	r.UserID = user.ID
 	r.Owner = owner
 	r.Name = name
+	r.Private = *in.Private
 	r.LastCheck = time.Now().UTC().Add(-1 * time.Hour)
 	r.Hash = crypto.Rand()
 

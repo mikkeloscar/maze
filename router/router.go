@@ -19,6 +19,7 @@ func Load(middleware ...gin.HandlerFunc) http.Handler {
 	repo := e.Group("/repos/:owner/:name")
 	{
 		repo.Use(session.SetRepo())
+		repo.Use(session.SetRepoPerm())
 		repo.Use(session.RepoRead())
 		repo.GET("/:arch/:file", controller.ServeRepoFile)
 	}

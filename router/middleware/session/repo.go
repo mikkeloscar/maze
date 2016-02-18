@@ -1,6 +1,7 @@
 package session
 
 import (
+	"fmt"
 	"net/http"
 
 	log "github.com/Sirupsen/logrus"
@@ -59,22 +60,22 @@ func SetRepoPerm() gin.HandlerFunc {
 		perm := &model.Perm{}
 
 		switch {
-		case user == nil:
-			// if !repo.Private {
+		case user != nil && user.Admin:
 			perm.Read = true
-			// } else {
-			// 	perm.Read = false
-			// }
+			perm.Write = true
+			perm.Admin = true
+		case user != nil && user.ID == repo.UserID:
+			perm.Read = true
+			perm.Write = true
+			perm.Admin = true
+		default:
+			if !repo.Private {
+				perm.Read = true
+			} else {
+				perm.Read = false
+			}
 			perm.Write = false
 			perm.Admin = false
-		case user.Admin:
-			perm.Read = true
-			perm.Write = true
-			perm.Admin = true
-		case user.ID == repo.UserID:
-			perm.Read = true
-			perm.Write = true
-			perm.Admin = true
 		}
 
 		c.Set("perm", perm)
@@ -85,12 +86,12 @@ func SetRepoPerm() gin.HandlerFunc {
 func RepoWrite() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		perm := RepoPerm(c)
-		// repo := Repo(c)
+		repo := Repo(c)
 		status := http.StatusUnauthorized
-		// if repo.Private {
-		// 	// don't leak info if private
-		// 	status = http.StatusNotFound
-		// }
+		if repo.Private {
+			// don't leak info if private
+			status = http.StatusNotFound
+		}
 
 		if perm != nil && (perm.Admin || perm.Write) {
 			c.Next()
@@ -103,12 +104,14 @@ func RepoWrite() gin.HandlerFunc {
 func RepoRead() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		perm := RepoPerm(c)
-		// repo := Repo(c)
+		repo := Repo(c)
 		status := http.StatusUnauthorized
-		// if repo.Private {
-		// 	// don't leak info if private
-		// 	status = http.StatusNotFound
-		// }
+		if repo.Private {
+			// don't leak info if private
+			status = http.StatusNotFound
+		}
+
+		fmt.Println(perm)
 
 		if perm != nil && (perm.Admin || perm.Read) {
 			c.Next()
