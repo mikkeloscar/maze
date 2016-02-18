@@ -1,4 +1,6 @@
-# maze - automated build system for Archlinux
+# maze
+
+Automated build system for Archlinux packages.
 
 ## TODO
 
