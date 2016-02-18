@@ -8,7 +8,7 @@ type Source interface {
 	Updates([]string, *repo.Repo) ([]string, error)
 }
 
-type SourcePkg struct {
+type Pkg struct {
 	Name    string
 	Archs   []string
 	Version string

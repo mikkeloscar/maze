@@ -37,24 +37,24 @@ func main() {
 
 	log.Printf("using repo storage path: %s", repo.RepoStorage)
 
-	store_, err := datastore.Load(env)
+	ctxStore, err := datastore.Load(env)
 	if err != nil {
 		log.Fatalf("failed to load datastore: %s", err)
 	}
-	remote_ := remote.Load(env)
+	ctxRemote := remote.Load(env)
 
 	chck := checker.Checker{
-		Remote: remote_,
-		Store:  store_,
+		Remote: ctxRemote,
+		Store:  ctxStore,
 	}
 	go chck.Run()
 
 	// setup the server and start listening
-	server_ := server.Load(env)
-	server_.Run(
+	httpServer := server.Load(env)
+	httpServer.Run(
 		router.Load(
-			context.SetStore(store_),
-			context.SetRemote(remote_),
+			context.SetStore(ctxStore),
+			context.SetRemote(ctxRemote),
 		),
 	)
 }

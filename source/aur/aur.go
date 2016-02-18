@@ -10,15 +10,15 @@ import (
 
 // Updates check for updated packages based on a list of packages and a
 // repository. Returns a list of packages with updates.
-func Updates(pkgs []string, repo *repo.Repo) ([]*source.SourcePkg, []*source.SourcePkg, error) {
-	deps := make(map[string]*source.SourcePkg)
+func Updates(pkgs []string, repo *repo.Repo) ([]*source.Pkg, []*source.Pkg, error) {
+	deps := make(map[string]*source.Pkg)
 	err := getDeps(pkgs, deps)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	updates := make([]*source.SourcePkg, 0)
-	checks := make([]*source.SourcePkg, 0)
+	var updates []*source.Pkg
+	var checks []*source.Pkg
 
 	for name, pkg := range deps {
 		compVersion, err := pkgbuild.NewCompleteVersion(pkg.Version)
@@ -44,23 +44,44 @@ func Updates(pkgs []string, repo *repo.Repo) ([]*source.SourcePkg, []*source.Sou
 }
 
 // query the AUR for build deps to packages.
-func getDeps(pkgs []string, updates map[string]*source.SourcePkg) error {
-	pkgsInfo, err := aur.Multiinfo(pkgs)
+func getDeps(pkgs []string, updates map[string]*source.Pkg) error {
+	pkgsInfo, err := aur.Info(pkgs)
 	if err != nil {
 		return err
 	}
 
 	for _, pkg := range pkgsInfo {
-		updates[pkg.Name] = &source.SourcePkg{
+		updates[pkg.Name] = &source.Pkg{
 			Name:    pkg.Name,
 			Version: pkg.Version,
 		}
 
 		// TODO: maybe add optdepends
 		depends := make([]string, 0, len(pkg.Depends)+len(pkg.MakeDepends))
-		depends = append(depends, pkg.Depends...)
-		depends = append(depends, pkg.MakeDepends...)
+		err := addDeps(&depends, pkg.Depends)
+		if err != nil {
+			return err
+		}
+		err = addDeps(&depends, pkg.MakeDepends)
+		if err != nil {
+			return err
+		}
 		getDeps(depends, updates)
+	}
+
+	return nil
+}
+
+// parses a string slice of dependencies and adds them to the combinedDepends
+// slice.
+func addDeps(combinedDepends *[]string, deps []string) error {
+	parsedDeps, err := pkgbuild.ParseDeps(deps)
+	if err != nil {
+		return err
+	}
+
+	for _, dep := range parsedDeps {
+		*combinedDepends = append(*combinedDepends, dep.Name)
 	}
 
 	return nil
