@@ -62,11 +62,13 @@ func PostRepo(c *gin.Context) {
 	}
 
 	if in.Private == nil {
-		*in.Private = false
+		private := false
+		in.Private = &private
 	}
 
 	if in.Archs == nil || len(*in.Archs) == 0 {
-		*in.Archs = []string{"x86_64"}
+		defArch := []string{"x86_64"}
+		in.Archs = &defArch
 	}
 
 	if !repo.ValidArchs(*in.Archs) {
