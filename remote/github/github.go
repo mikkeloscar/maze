@@ -125,8 +125,8 @@ func (g *Github) Perm(u *model.User, owner, name string) (*model.Perm, error) {
 
 	perm := &model.Perm{}
 	perm.Admin = (*r.Permissions)["admin"]
-	perm.Push = (*r.Permissions)["push"]
-	perm.Pull = (*r.Permissions)["pull"]
+	perm.Write = (*r.Permissions)["push"]
+	perm.Read = (*r.Permissions)["pull"]
 	return perm, nil
 }
 

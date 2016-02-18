@@ -1,7 +1,7 @@
 package model
 
 type Perm struct {
-	Pull  bool `json:"pull"`
-	Push  bool `json:"push"`
+	Read  bool `json:"read"`
+	Write bool `json:"write"`
 	Admin bool `json:"admin"`
 }

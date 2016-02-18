@@ -19,6 +19,7 @@ func Load(middleware ...gin.HandlerFunc) http.Handler {
 	repo := e.Group("/repos/:owner/:name")
 	{
 		repo.Use(session.SetRepo())
+		repo.Use(session.RepoRead())
 		repo.GET("/:arch/:file", controller.ServeRepoFile)
 	}
 
@@ -30,24 +31,24 @@ func Load(middleware ...gin.HandlerFunc) http.Handler {
 		{
 			repo.Use(session.SetRepo())
 			repo.Use(session.SetRepoPerm())
+			repo.Use(session.RepoRead())
 			// TODO: more advanced permissions
 
 			repo.GET("", controller.GetRepo)
-			// TODO: add permissions
-			repo.PATCH("", controller.PatchRepo)
-			repo.DELETE("", controller.DeleteRepo)
+			repo.PATCH("", session.RepoWrite(), controller.PatchRepo)
+			repo.DELETE("", session.RepoWrite(), controller.DeleteRepo)
 
 			packages := repo.Group("/:arch")
 			{
 				packages.GET("", controller.GetRepoPackages)
 				packages.GET("/:package", controller.GetRepoPackage)
-				// TODO: add permissions
-				packages.DELETE("/:package", controller.DeleteRepoPackage)
+				packages.DELETE("/:package", session.RepoWrite(), controller.DeleteRepoPackage)
 				packages.GET("/:package/files", controller.GetRepoPackageFiles)
 			}
 
 			upload := repo.Group("/upload")
 			{
+				upload.Use(session.RepoWrite())
 				upload.POST("/start", controller.PostUploadStart)
 				upload.POST("/file/:filename/:sessionid", controller.PostUploadFile)
 				upload.POST("/done/:sessionid", controller.PostUploadDone)

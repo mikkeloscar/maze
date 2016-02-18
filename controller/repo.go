@@ -99,7 +99,7 @@ func PostRepo(c *gin.Context) {
 		return
 	}
 
-	if !(p.Admin || (p.Pull && p.Push)) {
+	if !(p.Admin || (p.Read && p.Write)) {
 		log.Errorf("pull/push access required")
 		c.AbortWithStatus(http.StatusUnauthorized)
 		return

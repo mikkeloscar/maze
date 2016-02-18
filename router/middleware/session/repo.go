@@ -60,20 +60,60 @@ func SetRepoPerm() gin.HandlerFunc {
 
 		switch {
 		case user == nil:
-			perm.Pull = false
-			perm.Push = false
+			// if !repo.Private {
+			perm.Read = true
+			// } else {
+			// 	perm.Read = false
+			// }
+			perm.Write = false
 			perm.Admin = false
 		case user.Admin:
-			perm.Pull = true
-			perm.Push = true
+			perm.Read = true
+			perm.Write = true
 			perm.Admin = true
 		case user.ID == repo.UserID:
-			perm.Pull = true
-			perm.Push = true
+			perm.Read = true
+			perm.Write = true
 			perm.Admin = true
 		}
 
 		c.Set("perm", perm)
 		c.Next()
+	}
+}
+
+func RepoWrite() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		perm := RepoPerm(c)
+		// repo := Repo(c)
+		status := http.StatusUnauthorized
+		// if repo.Private {
+		// 	// don't leak info if private
+		// 	status = http.StatusNotFound
+		// }
+
+		if perm != nil && (perm.Admin || perm.Write) {
+			c.Next()
+		} else {
+			c.AbortWithStatus(status)
+		}
+	}
+}
+
+func RepoRead() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		perm := RepoPerm(c)
+		// repo := Repo(c)
+		status := http.StatusUnauthorized
+		// if repo.Private {
+		// 	// don't leak info if private
+		// 	status = http.StatusNotFound
+		// }
+
+		if perm != nil && (perm.Admin || perm.Read) {
+			c.Next()
+		} else {
+			c.AbortWithStatus(status)
+		}
 	}
 }
