@@ -2,6 +2,7 @@ package checker
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
 	log "github.com/Sirupsen/logrus"
@@ -30,22 +31,34 @@ func (c *Checker) update(u *model.User, r *repo.Repo) error {
 		return err
 	}
 
-	for _, pkg := range updatePkgs {
+	for _, pkgs := range updatePkgs {
 		// TODO: configurable branch names
-		err = c.Remote.EmptyCommit(u, r.SourceOwner, r.SourceName, "master", "build", fmt.Sprintf("update:%s:aur", pkg.Name))
+		err = c.Remote.EmptyCommit(u,
+			r.SourceOwner,
+			r.SourceName,
+			"master",
+			"build",
+			fmt.Sprintf("update:%s:aur", strings.Join(pkgs, ",")),
+		)
 		if err != nil {
 			return err
 		}
-		log.Printf("Making update request for '%s'", pkg.Name)
+		log.Printf("Making update request for '%s'", strings.Join(pkgs, ", "))
 	}
 
-	for _, pkg := range checkPkgs {
+	for _, pkgs := range checkPkgs {
 		// TODO: configurable branch names
-		err = c.Remote.EmptyCommit(u, r.SourceOwner, r.SourceName, "master", "build", fmt.Sprintf("check:%s:aur", pkg.Name))
+		err = c.Remote.EmptyCommit(u,
+			r.SourceOwner,
+			r.SourceName,
+			"master",
+			"build",
+			fmt.Sprintf("check:%s:aur", strings.Join(pkgs, ",")),
+		)
 		if err != nil {
 			return err
 		}
-		log.Printf("Making check request for '%s'", pkg.Name)
+		log.Printf("Making check request for '%s'", strings.Join(pkgs, ", "))
 	}
 	return nil
 }
@@ -55,7 +68,7 @@ func (c *Checker) Run() {
 	for {
 		select {
 		case <-time.After(time.Minute * 10):
-			// case <-time.After(time.Second * 10):
+			// case <-time.After(time.Second * 60):
 			// TODO: maybe run in goroutine
 			repos, err := c.Store.Repos().GetRepoList()
 			if err != nil {
@@ -71,6 +84,7 @@ func (c *Checker) Run() {
 				// only check for updates if last check was
 				// more than an hour ago
 				last := r.LastCheck.Add(1 * time.Hour)
+				// last := r.LastCheck.Add(1 * time.Minute)
 				if time.Now().UTC().Before(last) {
 					continue
 				}
