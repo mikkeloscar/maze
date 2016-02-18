@@ -1,7 +1,6 @@
 package session
 
 import (
-	"fmt"
 	"net/http"
 
 	log "github.com/Sirupsen/logrus"
@@ -110,8 +109,6 @@ func RepoRead() gin.HandlerFunc {
 			// don't leak info if private
 			status = http.StatusNotFound
 		}
-
-		fmt.Println(perm)
 
 		if perm != nil && (perm.Admin || perm.Read) {
 			c.Next()
