@@ -149,6 +149,13 @@ func PostRepo(c *gin.Context) {
 		return
 	}
 
+	err = fsRepo.InitEmptyDBs()
+	if err != nil {
+		log.Errorf("failed to initialize empty dbs: %s", err)
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+
 	err = store.CreateRepo(c, r)
 	if err != nil {
 		log.Errorf("failed to add repo: %s", err)

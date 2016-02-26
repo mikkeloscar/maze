@@ -105,6 +105,23 @@ func (r *Repo) FilesDB(arch string) string {
 	return path.Join(r.PathDeep(arch), fmt.Sprintf("%s.files.tar.gz", r.Name))
 }
 
+// InitEmptyDBs initialize empty dbs for the repo.
+func (r *Repo) InitEmptyDBs() error {
+	for _, arch := range r.Archs {
+		args := []string{"--nocolor", "-R", r.DB(arch)}
+
+		cmd := exec.Command("repo-add", args...)
+		cmd.Dir = r.PathDeep(arch)
+
+		err := cmd.Run()
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 // Add adds a list of packages to a repo db, moving the package files to
 // the repo db directory if needed.
 func (r *Repo) Add(pkgPaths []string) error {
