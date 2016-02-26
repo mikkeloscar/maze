@@ -18,6 +18,8 @@ CREATE TABLE repos (
 ,name          TEXT
 ,source_owner  TEXT
 ,source_name   TEXT
+,source_branch TEXT
+,build_branch  TEXT
 ,hash          TEXT
 ,last_check    DATETIME
 

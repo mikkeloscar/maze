@@ -50,9 +50,11 @@ func PostRepo(c *gin.Context) {
 	}
 
 	in := struct {
-		SourceRepo *string   `json:"source_repo" binding:"required"`
-		Archs      *[]string `json:"archs,omitempty"`
-		Private    *bool     `json:"private,omitempty"`
+		SourceRepo   *string   `json:"source_repo" binding:"required"`
+		SourceBranch *string   `json:"source_branch,omitempty"`
+		BuildBranch  *string   `json:"build_branch,omitempty"`
+		Archs        *[]string `json:"archs,omitempty"`
+		Private      *bool     `json:"private,omitempty"`
 	}{}
 	err := c.BindJSON(&in)
 	if err != nil {
@@ -81,6 +83,16 @@ func PostRepo(c *gin.Context) {
 		log.Error(err)
 		c.AbortWithStatus(http.StatusBadRequest)
 		return
+	}
+
+	if in.SourceBranch == nil {
+		sourceBranch := "master"
+		in.SourceBranch = &sourceBranch
+	}
+
+	if in.BuildBranch == nil {
+		buildBranch := "build"
+		in.BuildBranch = &buildBranch
 	}
 
 	// error if the repository already exists
@@ -112,8 +124,7 @@ func PostRepo(c *gin.Context) {
 		return
 	}
 
-	// TODO: make branches configurable
-	err = remote.SetupBranch(user, sourceOwner, sourceName, "master", "build")
+	err = remote.SetupBranch(user, sourceOwner, sourceName, *in.SourceBranch, *in.BuildBranch)
 	if err != nil {
 		log.Errorf("failed to setup build branch: %s", err)
 		c.AbortWithStatus(http.StatusInternalServerError)
@@ -124,6 +135,8 @@ func PostRepo(c *gin.Context) {
 	r.Owner = owner
 	r.Name = name
 	r.Private = *in.Private
+	r.SourceBranch = *in.SourceBranch
+	r.BuildBranch = *in.BuildBranch
 	r.LastCheck = time.Now().UTC().Add(-1 * time.Hour)
 	r.Hash = crypto.Rand()
 
@@ -158,9 +171,11 @@ func PatchRepo(c *gin.Context) {
 	r := session.Repo(c)
 
 	in := struct {
-		SourceOwner *string `json:"source_owner,omitempty"`
-		SourceName  *string `json:"source_name,omitempty"`
-		Name        *string `json:"name,omitempty"`
+		SourceOwner  *string `json:"source_owner,omitempty"`
+		SourceName   *string `json:"source_name,omitempty"`
+		SourceBranch *string `json:"source_branch,omitempty"`
+		BuildBranch  *string `json:"build_branch,omitempty"`
+		Name         *string `json:"name,omitempty"`
 	}{}
 
 	err := c.BindJSON(&in)
@@ -176,6 +191,14 @@ func PatchRepo(c *gin.Context) {
 
 	if in.SourceName != nil {
 		r.SourceName = *in.SourceName
+	}
+
+	if in.SourceBranch != nil {
+		r.SourceBranch = *in.SourceBranch
+	}
+
+	if in.BuildBranch != nil {
+		r.BuildBranch = *in.BuildBranch
 	}
 
 	if in.Name != nil {

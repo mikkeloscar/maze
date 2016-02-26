@@ -32,12 +32,11 @@ func (c *Checker) update(u *model.User, r *repo.Repo) error {
 	}
 
 	for _, pkgs := range updatePkgs {
-		// TODO: configurable branch names
 		err = c.Remote.EmptyCommit(u,
 			r.SourceOwner,
 			r.SourceName,
-			"master",
-			"build",
+			r.SourceBranch,
+			r.BuildBranch,
 			fmt.Sprintf("update:%s:aur", strings.Join(pkgs, ",")),
 		)
 		if err != nil {
@@ -47,12 +46,11 @@ func (c *Checker) update(u *model.User, r *repo.Repo) error {
 	}
 
 	for _, pkgs := range checkPkgs {
-		// TODO: configurable branch names
 		err = c.Remote.EmptyCommit(u,
 			r.SourceOwner,
 			r.SourceName,
-			"master",
-			"build",
+			r.SourceBranch,
+			r.BuildBranch,
 			fmt.Sprintf("check:%s:aur", strings.Join(pkgs, ",")),
 		)
 		if err != nil {
