@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"os"
 	"path"
+	"strings"
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/gin-gonic/gin"
@@ -88,11 +89,11 @@ func PostUploadDone(c *gin.Context) {
 	sessionID := c.Param("sessionid")
 	repo := session.Repo(c)
 
-	if v, ok := sessions[sessionID]; ok {
+	if pkgs, ok := sessions[sessionID]; ok {
 		delete(sessions, sessionID)
-		err := repo.Add(v)
+		err := repo.Add(pkgs)
 		if err != nil {
-			log.Errorf("failed to add package '%s' to repository '%s': %s", v, repo.Name, err)
+			log.Errorf("failed to add packages '%s' to repository '%s': %s", strings.Join(pkgs, ", "), repo.Name, err)
 			c.AbortWithStatus(http.StatusInternalServerError)
 			return
 		}
