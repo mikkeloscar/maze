@@ -21,9 +21,9 @@ import (
 	"github.com/mikkeloscar/maze/model"
 )
 
-var pkgPatt = regexp.MustCompile(`([a-z]+[a-z\-]+[a-z]+)-((\d+:)?([\da-z\.]+-\d+))-(i686|x86_64|any).pkg.tar.xz(.sig)?`)
+var pkgPatt = regexp.MustCompile(`([a-z\d@._+]+[a-z\d@._+-]+)-((\d+:)?([\da-z\.]+-\d+))-(i686|x86_64|any).pkg.tar.xz(.sig)?`)
 var removePatt = regexp.MustCompile(`Removing existing entry '([a-z\d@._+-]+)'`)
-var pkgNamePatt = regexp.MustCompile(`^[a-z\d][a-z\d@._+-]*$`)
+var pkgNamePatt = regexp.MustCompile(`^[a-z\d@._+][a-z\d@._+-]*$`)
 
 // ValidRepoName returns true if the name is a valid repo name.
 // A valid name must only consist of lowercase alphanumerics and any of the

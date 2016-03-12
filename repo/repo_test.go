@@ -61,6 +61,12 @@ func TestSplitFileNameVersion(t *testing.T) {
 
 	_, _, _, err = splitFileNameVersion("zlib-1.2.8-4-any.pkg.tar.xz")
 	assert.NoError(t, err, "should not fail")
+
+	name, version, arch, err = splitFileNameVersion("pulseaudio-raop2-8.0-1-x86_64.pkg.tar.xz")
+	assert.NoError(t, err, "should not fail")
+	assert.Equal(t, "pulseaudio-raop2", name, "should be equal")
+	assert.Equal(t, "x86_64", arch, "should be equal")
+	assert.Equal(t, "8.0-1", version, "should be equal")
 }
 
 func TestAdd(t *testing.T) {
@@ -201,7 +207,8 @@ func TestValidRepoName(t *testing.T) {
 	assert.True(t, ValidRepoName("test_"), "should be true")
 	assert.True(t, ValidRepoName("test+"), "should be true")
 	assert.True(t, ValidRepoName("test-"), "should be true")
-	assert.False(t, ValidRepoName("@test"), "should be false")
+	assert.True(t, ValidRepoName("@test-"), "should be true")
+	assert.False(t, ValidRepoName("-test"), "should be false")
 	assert.False(t, ValidRepoName("test="), "should be false")
 	assert.False(t, ValidRepoName("te st"), "should be false")
 }
