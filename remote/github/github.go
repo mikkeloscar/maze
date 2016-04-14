@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"net/url"
 
-	"github.com/drone/drone/shared/envconfig"
 	"github.com/drone/drone/shared/httputil"
 	"github.com/google/go-github/github"
 	"github.com/gorilla/securecookie"
@@ -31,12 +30,12 @@ type Github struct {
 }
 
 // Load loads the github remote.
-func Load(env envconfig.Env) *Github {
+func Load(client string, secret string) *Github {
 	github := Github{
 		URL:    defaultURL,
 		API:    defaultAPI,
-		Client: env.String("CLIENT", ""),
-		Secret: env.String("SECRET", ""),
+		Client: client,
+		Secret: secret,
 	}
 
 	return &github

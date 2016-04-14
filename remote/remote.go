@@ -3,10 +3,15 @@ package remote
 import (
 	"net/http"
 
-	"github.com/drone/drone/shared/envconfig"
+	"github.com/ianschenck/envflag"
 	"github.com/mikkeloscar/maze/common/pkgconfig"
 	"github.com/mikkeloscar/maze/model"
 	"github.com/mikkeloscar/maze/remote/github"
+)
+
+var (
+	client = envflag.String("CLIENT", "", "")
+	secret = envflag.String("SECRET", "", "")
 )
 
 type Remote interface {
@@ -35,6 +40,6 @@ type Remote interface {
 	GetConfig(u *model.User, owner, repo, path string) (*pkgconfig.PkgConfig, error)
 }
 
-func Load(env envconfig.Env) Remote {
-	return github.Load(env)
+func Load() Remote {
+	return github.Load(*client, *secret)
 }

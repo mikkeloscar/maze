@@ -2,11 +2,11 @@ package main
 
 import (
 	"flag"
+	"net/http"
 
 	log "github.com/Sirupsen/logrus"
-	"github.com/drone/drone/shared/envconfig"
-	"github.com/drone/drone/shared/server"
 	"github.com/gin-gonic/gin"
+	"github.com/ianschenck/envflag"
 	"github.com/mikkeloscar/maze/checker"
 	"github.com/mikkeloscar/maze/remote"
 	"github.com/mikkeloscar/maze/repo"
@@ -16,32 +16,32 @@ import (
 )
 
 var (
-	envConf = flag.String("config", "env.conf", "")
-	debug   = flag.Bool("d", false, "")
+	addr = envflag.String("SERVER_ADDR", ":8080", "")
+
+	debug = flag.Bool("d", false, "")
 )
 
 func main() {
 	flag.Parse()
+	envflag.Parse()
 
 	if !*debug {
 		// disbale gin debug mode
 		gin.SetMode(gin.ReleaseMode)
 	}
 
-	env := envconfig.Load(*envConf)
-
-	err := repo.LoadRepoStorage(env)
+	err := repo.LoadRepoStorage()
 	if err != nil {
 		log.Fatalf("repo storage error: %s", err)
 	}
 
 	log.Printf("using repo storage path: %s", repo.RepoStorage)
 
-	ctxStore, err := datastore.Load(env)
+	ctxStore, err := datastore.Load()
 	if err != nil {
 		log.Fatalf("failed to load datastore: %s", err)
 	}
-	ctxRemote := remote.Load(env)
+	ctxRemote := remote.Load()
 
 	chck := checker.Checker{
 		Remote: ctxRemote,
@@ -50,11 +50,10 @@ func main() {
 	go chck.Run()
 
 	// setup the server and start listening
-	httpServer := server.Load(env)
-	httpServer.Run(
-		router.Load(
-			context.SetStore(ctxStore),
-			context.SetRemote(ctxRemote),
-		),
+	handler := router.Load(
+		context.SetStore(ctxStore),
+		context.SetRemote(ctxRemote),
 	)
+
+	log.Fatal(http.ListenAndServe(*addr, handler))
 }

@@ -6,18 +6,20 @@ import (
 	"path"
 
 	log "github.com/Sirupsen/logrus"
-	"github.com/drone/drone/shared/envconfig"
+	"github.com/ianschenck/envflag"
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/mikkeloscar/maze/store"
 	"github.com/rubenv/sql-migrate"
 	"github.com/russross/meddler"
 )
 
-func Load(env envconfig.Env) (store.Store, error) {
-	driver := env.String("DATABASE_DRIVER", "sqlite3")
-	config := env.String("DATABASE_CONFIG", "maze.sqlite")
+var (
+	driver = envflag.String("DATABASE_DRIVER", "sqlite3", "")
+	config = envflag.String("DATABASE_CONFIG", "maze.sqlite", "")
+)
 
-	return New(driver, config)
+func Load() (store.Store, error) {
+	return New(*driver, *config)
 }
 
 func New(driver, config string) (store.Store, error) {
