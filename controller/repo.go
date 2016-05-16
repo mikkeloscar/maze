@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"encoding/base32"
 	"fmt"
 	"net/http"
 	"path"
@@ -8,8 +9,8 @@ import (
 	"time"
 
 	log "github.com/Sirupsen/logrus"
-	"github.com/drone/drone/shared/crypto"
 	"github.com/gin-gonic/gin"
+	"github.com/gorilla/securecookie"
 	"github.com/mikkeloscar/maze/common/util"
 	"github.com/mikkeloscar/maze/remote"
 	"github.com/mikkeloscar/maze/repo"
@@ -138,7 +139,9 @@ func PostRepo(c *gin.Context) {
 	r.SourceBranch = *in.SourceBranch
 	r.BuildBranch = *in.BuildBranch
 	r.LastCheck = time.Now().UTC().Add(-1 * time.Hour)
-	r.Hash = crypto.Rand()
+	r.Hash = base32.StdEncoding.EncodeToString(
+		securecookie.GenerateRandomKey(32),
+	)
 
 	fsRepo := repo.NewRepo(r, repo.RepoStorage)
 

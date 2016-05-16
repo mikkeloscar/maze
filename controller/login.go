@@ -1,14 +1,15 @@
 package controller
 
 import (
+	"encoding/base32"
 	"net/http"
 	"time"
 
 	log "github.com/Sirupsen/logrus"
-	"github.com/drone/drone/shared/crypto"
 	"github.com/drone/drone/shared/httputil"
 	"github.com/drone/drone/shared/token"
 	"github.com/gin-gonic/gin"
+	"github.com/gorilla/securecookie"
 	"github.com/mikkeloscar/maze/model"
 	"github.com/mikkeloscar/maze/remote"
 	"github.com/mikkeloscar/maze/store"
@@ -49,7 +50,9 @@ func GetLogin(c *gin.Context) {
 		// create the user account
 		u = &model.User{}
 		u.Login = tmpUser.Login
-		u.Hash = crypto.Rand()
+		u.Hash = base32.StdEncoding.EncodeToString(
+			securecookie.GenerateRandomKey(32),
+		)
 
 		// insert the user into the database
 		if err := store.CreateUser(c, u); err != nil {
