@@ -129,6 +129,10 @@ func followNode(n *depNode, g map[string]string, table map[string]*depNode) {
 		g[n.name] = n.version
 		delete(table, n.name)
 		for _, p := range n.parents {
+			if _, ok := g[p.name]; ok {
+				continue
+			}
+
 			g[p.name] = p.version
 			if len(p.children) > 1 {
 				delete(p.children, n.name)
