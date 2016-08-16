@@ -1,12 +1,8 @@
 package aur
 
 import (
-	"fmt"
-	"os"
 	"testing"
 
-	"github.com/mikkeloscar/maze/model"
-	"github.com/mikkeloscar/maze/repo"
 	"github.com/stretchr/testify/assert"
 )
 
