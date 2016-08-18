@@ -1,0 +1,12 @@
+language: go
+sudo: required
+
+arch:
+  packages:
+    - go
+  script:
+    - go get -t -v ./...
+    - go test -v ./...
+
+script:
+  - "curl -s https://raw.githubusercontent.com/mikkeloscar/arch-travis/master/arch-travis.sh | bash"
