@@ -1,4 +1,5 @@
 # maze
+[![Build Status](https://travis-ci.org/mikkeloscar/maze.svg?branch=master)](https://travis-ci.org/mikkeloscar/maze)
 
 Automated build system for Archlinux packages.
 
