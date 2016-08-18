@@ -17,6 +17,7 @@ import (
 type Checker struct {
 	Remote remote.Remote
 	Store  store.Store
+	State  *State
 }
 
 // trigger update builds for new packages.
@@ -32,6 +33,10 @@ func (c *Checker) update(u *model.User, r *repo.Repo) error {
 	}
 
 	for _, pkgs := range updatePkgs {
+		if c.pkgBuildActive(pkgs, r) {
+			continue
+		}
+
 		err = c.Remote.EmptyCommit(u,
 			r.SourceOwner,
 			r.SourceName,
@@ -43,6 +48,10 @@ func (c *Checker) update(u *model.User, r *repo.Repo) error {
 			return err
 		}
 		log.Printf("Making update request for '%s'", strings.Join(pkgs, ", "))
+		// mark packages active in test
+		for _, pkg := range pkgs {
+			c.State.Add(pkg, r.Owner, r.Name)
+		}
 	}
 
 	for _, pkgs := range checkPkgs {
@@ -59,6 +68,19 @@ func (c *Checker) update(u *model.User, r *repo.Repo) error {
 		log.Printf("Making check request for '%s'", strings.Join(pkgs, ", "))
 	}
 	return nil
+}
+
+// pkgBuildActive returns true if at least one of the packages in the list is
+// marked active.
+func (c *Checker) pkgBuildActive(pkgs []string, r *repo.Repo) bool {
+	for _, pkg := range pkgs {
+		active, _ := c.State.IsActive(pkg, r.Owner, r.Name)
+		if active {
+			return true
+		}
+	}
+
+	return false
 }
 
 // Run runs the checker that checks for package updates in repos.
@@ -103,6 +125,9 @@ func (c *Checker) Run() {
 				r.LastCheck = time.Now().UTC()
 				c.Store.Repos().Update(r)
 			}
+
+			// clear expired packages
+			c.State.ClearExpired()
 		}
 	}
 }

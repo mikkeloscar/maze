@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"net/http"
+	"time"
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/gin-gonic/gin"
@@ -18,7 +19,8 @@ import (
 var (
 	addr = envflag.String("SERVER_ADDR", ":8080", "")
 
-	debug = flag.Bool("d", false, "")
+	debug    = flag.Bool("d", false, "")
+	stateTTL = time.Duration(2 * time.Hour)
 )
 
 func main() {
@@ -43,9 +45,12 @@ func main() {
 	}
 	ctxRemote := remote.Load()
 
+	state := checker.NewState(stateTTL)
+
 	chck := checker.Checker{
 		Remote: ctxRemote,
 		Store:  ctxStore,
+		State:  state,
 	}
 	go chck.Run()
 
@@ -53,6 +58,7 @@ func main() {
 	handler := router.Load(
 		context.SetStore(ctxStore),
 		context.SetRemote(ctxRemote),
+		context.SetState(state),
 	)
 
 	log.Fatal(http.ListenAndServe(*addr, handler))
