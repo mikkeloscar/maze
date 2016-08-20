@@ -25,9 +25,9 @@ func Remote(c *gin.Context) remote.Remote {
 	return c.MustGet("remote").(remote.Remote)
 }
 
-func SetState(state *checker.State) gin.HandlerFunc {
+func SetState(s *checker.State) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		c.Set("state", state)
+		checker.ToContext(c, s)
 		c.Next()
 	}
 }
