@@ -73,6 +73,12 @@ func TestSplitFileNameVersion(t *testing.T) {
 	assert.Equal(t, "android-sources", name, "should be equal")
 	assert.Equal(t, "any", arch, "should be equal")
 	assert.Equal(t, "23_r01-1", version, "should be equal")
+
+	name, version, arch, err = splitFileNameVersion("android-sources-23_r+01-1-any.pkg.tar.xz")
+	assert.NoError(t, err, "should not fail")
+	assert.Equal(t, "android-sources", name, "should be equal")
+	assert.Equal(t, "any", arch, "should be equal")
+	assert.Equal(t, "23_r+01-1", version, "should be equal")
 }
 
 func TestAdd(t *testing.T) {
