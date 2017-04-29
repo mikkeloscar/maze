@@ -6,7 +6,6 @@ import (
 	"path"
 
 	log "github.com/Sirupsen/logrus"
-	"github.com/ianschenck/envflag"
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/mikkeloscar/maze/store"
 	"github.com/rubenv/sql-migrate"
@@ -14,12 +13,12 @@ import (
 )
 
 var (
-	driver = envflag.String("DATABASE_DRIVER", "sqlite3", "")
-	config = envflag.String("DATABASE_CONFIG", "maze.sqlite", "")
+	driver = os.Getenv("DATABASE_DRIVER")
+	config = os.Getenv("DATABASE_CONFIG")
 )
 
 func Load() (store.Store, error) {
-	return New(*driver, *config)
+	return New(driver, config)
 }
 
 func New(driver, config string) (store.Store, error) {

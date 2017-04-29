@@ -3,9 +3,6 @@ package repo
 import (
 	"fmt"
 	"os"
-	"path"
-
-	"github.com/ianschenck/envflag"
 )
 
 // RepoStorage defines the repo storage basepath.
@@ -14,12 +11,7 @@ var RepoStorage = ""
 // LoadRepoStorage checks if the path set by REPO_STORAGE is available and
 // tries to create it if it doesn't exist.
 func LoadRepoStorage() error {
-	wd, err := os.Getwd()
-	if err != nil {
-		return err
-	}
-
-	RepoStorage = *envflag.String("REPO_STORAGE", path.Join(wd, "_repo_storage"), "")
+	RepoStorage = os.Getenv("REPO_STORAGE")
 
 	f, err := os.Stat(RepoStorage)
 	if err != nil {
