@@ -3,6 +3,7 @@ package repo
 import (
 	"archive/tar"
 	"bufio"
+	"bytes"
 	"compress/gzip"
 	"fmt"
 	"io"
@@ -163,12 +164,14 @@ func (r *Repo) Add(pkgPaths []string) error {
 		args := []string{"--nocolor", "-R", r.DB(arch)}
 		args = append(args, pkgs...)
 
+		var stderr bytes.Buffer
 		cmd := exec.Command("repo-add", args...)
 		cmd.Dir = r.PathDeep(arch)
+		cmd.Stderr = &stderr
 
 		err := cmd.Run()
 		if err != nil {
-			return err
+			return fmt.Errorf("%s: %s", err, stderr.String())
 		}
 	}
 
