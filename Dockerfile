@@ -4,6 +4,7 @@ MAINTAINER Mikkel Larsen <m@moscar.net>
 RUN apk --no-cache upgrade \
     && apk --no-cache add \
         ca-certificates \
+        bash \
         pacman
 
 COPY store/migration/sqlite3/* /store/migration/sqlite3/
