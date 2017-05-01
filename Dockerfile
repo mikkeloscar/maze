@@ -5,6 +5,7 @@ RUN apk --no-cache upgrade \
     && apk --no-cache add \
         ca-certificates \
         bash \
+        libarchive-tools \
         pacman
 
 COPY store/migration/sqlite3/* /store/migration/sqlite3/
