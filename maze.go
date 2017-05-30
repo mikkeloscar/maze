@@ -20,7 +20,7 @@ var (
 	addr = envflag.String("SERVER_ADDR", ":8080", "")
 
 	debug    = flag.Bool("d", false, "")
-	stateTTL = time.Duration(2 * time.Hour)
+	stateTTL = 2 * time.Hour
 )
 
 func main() {
