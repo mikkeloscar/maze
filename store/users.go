@@ -1,8 +1,9 @@
 package store
 
 import (
+	"context"
+
 	"github.com/mikkeloscar/maze/model"
-	"golang.org/x/net/context"
 )
 
 type UserStore interface {
