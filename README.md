@@ -7,6 +7,7 @@ Automated build system for Archlinux packages.
 
  * [ ] UI
  * [ ] Sign packages
+ * [ ] Define swagger spec (gen code with gin-swagger)
  * [ ] Package sources
     * [x] AUR
     * [ ] Local packages
