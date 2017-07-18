@@ -5,8 +5,9 @@ arch:
   packages:
     - go
   script:
-    - go get -t -v ./...
-    - go test -v ./...
+    - go get -u github.com/golang/dep/cmd/dep
+    - dep ensure
+    - make test
 
 script:
-  - "curl -s https://raw.githubusercontent.com/mikkeloscar/arch-travis/master/arch-travis.sh | bash"
+- "curl -s https://raw.githubusercontent.com/mikkeloscar/arch-travis/master/arch-travis.sh | bash"
