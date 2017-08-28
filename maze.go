@@ -20,6 +20,7 @@ var (
 	addr = envflag.String("SERVER_ADDR", ":8080", "")
 
 	debug    = flag.Bool("d", false, "")
+	check    = flag.Bool("check", false, "Enable automatic check of package updates.")
 	stateTTL = 2 * time.Hour
 )
 
@@ -45,21 +46,26 @@ func main() {
 	}
 	ctxRemote := remote.Load()
 
-	state := checker.NewState(stateTTL)
-
-	chck := checker.Checker{
-		Remote: ctxRemote,
-		Store:  ctxStore,
-		State:  state,
-	}
-	go chck.Run()
-
-	// setup the server and start listening
-	handler := router.Load(
+	middleware := []gin.HandlerFunc{
 		context.SetStore(ctxStore),
 		context.SetRemote(ctxRemote),
-		context.SetState(state),
-	)
+	}
+
+	if *check {
+		state := checker.NewState(stateTTL)
+
+		chck := checker.Checker{
+			Remote: ctxRemote,
+			Store:  ctxStore,
+			State:  state,
+		}
+		go chck.Run()
+
+		middleware = append(middleware, context.SetState(state))
+	}
+
+	// setup the server and start listening
+	handler := router.Load(middleware...)
 
 	log.Fatal(http.ListenAndServe(*addr, handler))
 }
