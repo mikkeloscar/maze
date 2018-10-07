@@ -5,7 +5,7 @@ import (
 	"os"
 	"path"
 
-	log "github.com/Sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/mikkeloscar/maze/store"
 	"github.com/rubenv/sql-migrate"

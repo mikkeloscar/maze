@@ -1,4 +1,4 @@
-FROM alpine:3.5
+FROM alpine:3.8
 MAINTAINER Mikkel Larsen <m@moscar.net>
 
 RUN apk --no-cache upgrade \

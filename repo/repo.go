@@ -284,8 +284,12 @@ Loop:
 			switch header.Typeflag {
 			case tar.TypeDir:
 				n, v := splitNameVersion(header.Name)
+				parsedVersion, err := pkgbuild.NewCompleteVersion(v)
+				if err != nil {
+					return false, err
+				}
 				if n == name {
-					if version.Newer(v) {
+					if version.Newer(parsedVersion) {
 						break Loop
 					}
 					return false, nil
