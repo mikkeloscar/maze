@@ -35,5 +35,5 @@ func TestGetDeps(t *testing.T) {
 	assert.NoError(t, err, "should not fail")
 
 	groups = groupDeps(deps)
-	assert.Len(t, groups, 1, "should have len 2")
+	assert.Len(t, groups, 2, "should have len 2")
 }
