@@ -15,7 +15,7 @@ require (
 	github.com/kr/pretty v0.2.1 // indirect
 	github.com/lib/pq v1.8.0 // indirect
 	github.com/mattn/go-isatty v0.0.4 // indirect
-	github.com/mattn/go-sqlite3 v1.9.0
+	github.com/mattn/go-sqlite3 v1.14.0
 	github.com/mikkeloscar/aur v0.0.0-20180725140122-f998dbf94dc4
 	github.com/mikkeloscar/gopkgbuild v0.0.0-20180615131628-2bb4f1f1db67
 	github.com/rubenv/sql-migrate v0.0.0-20180704111356-3f452fc0ebeb

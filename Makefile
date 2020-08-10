@@ -31,7 +31,7 @@ build/$(BINARY): $(SOURCES)
 build/linux/$(BINARY): $(SOURCES)
 	GOOS=linux GOARCH=amd64 go build $(BUILD_FLAGS) -o build/linux/$(BINARY) -ldflags "$(LDFLAGS)" .
 
-build.docker: build.linux
+build.docker:
 	docker build --rm -t "$(IMAGE):$(TAG)" -f $(DOCKERFILE) .
 
 build.push: build.docker
