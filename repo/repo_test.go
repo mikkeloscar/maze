@@ -41,6 +41,12 @@ func TestSplitFileNameVersion(t *testing.T) {
 	assert.Equal(t, "any", arch, "should be equal")
 	assert.Equal(t, "20150402-1", version, "should be equal")
 
+	name, version, arch, err = splitFileNameVersion("ca-certificates-20150402-1-any.pkg.tar.zst")
+	assert.NoError(t, err, "should not fail")
+	assert.Equal(t, "ca-certificates", name, "should be equal")
+	assert.Equal(t, "any", arch, "should be equal")
+	assert.Equal(t, "20150402-1", version, "should be equal")
+
 	name, version, arch, err = splitFileNameVersion("ca-certificates-2:20150402-1-any.pkg.tar.xz")
 	assert.NoError(t, err, "should not fail")
 	assert.Equal(t, "ca-certificates", name, "should be equal")
