@@ -7,11 +7,10 @@ import (
 	"path"
 	"strings"
 
-	log "github.com/sirupsen/logrus"
 	"github.com/gin-gonic/gin"
-	"github.com/mikkeloscar/maze/checker"
 	"github.com/mikkeloscar/maze/router/middleware/session"
-	"github.com/satori/go.uuid"
+	uuid "github.com/satori/go.uuid"
+	log "github.com/sirupsen/logrus"
 )
 
 var sessions = map[string][]string{}
@@ -89,7 +88,6 @@ func PostUploadFile(c *gin.Context) {
 func PostUploadDone(c *gin.Context) {
 	sessionID := c.Param("sessionid")
 	repo := session.Repo(c)
-	state := checker.FromContext(c)
 
 	if pkgs, ok := sessions[sessionID]; ok {
 		delete(sessions, sessionID)
@@ -100,11 +98,6 @@ func PostUploadDone(c *gin.Context) {
 			return
 		}
 
-		// clear packages from checker state
-		// TODO: check pkg name (maybe it's the full path here?)
-		for _, pkg := range pkgs {
-			state.ClearPkg(pkg, repo.Owner, repo.Name)
-		}
 		c.Writer.WriteHeader(http.StatusOK)
 		return
 	}

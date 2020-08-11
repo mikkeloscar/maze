@@ -5,7 +5,6 @@ import (
 	"net/http"
 	"time"
 
-	log "github.com/sirupsen/logrus"
 	"github.com/gin-gonic/gin"
 	"github.com/ianschenck/envflag"
 	"github.com/mikkeloscar/maze/checker"
@@ -14,6 +13,7 @@ import (
 	"github.com/mikkeloscar/maze/router"
 	"github.com/mikkeloscar/maze/router/middleware/context"
 	"github.com/mikkeloscar/maze/store/datastore"
+	log "github.com/sirupsen/logrus"
 )
 
 var (
