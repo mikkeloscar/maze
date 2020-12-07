@@ -16,8 +16,8 @@ import (
 )
 
 const (
-	defaultURL = "https://github.com"
-	defaultAPI = "https://api.github.com"
+	defaultURL = "https://github.com/"
+	defaultAPI = "https://api.github.com/"
 )
 
 var defaultScope = []string{"repo"}

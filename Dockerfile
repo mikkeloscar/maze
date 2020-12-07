@@ -8,7 +8,7 @@ ADD . /build
 RUN make build.linux
 
 FROM alpine:3.12
-MAINTAINER Mikkel Larsen <m@moscar.net>
+LABEL maintainer="Mikkel Larsen <m@moscar.net>"
 
 RUN apk --no-cache upgrade \
     && apk --no-cache add \
