@@ -3,16 +3,16 @@ package controller
 import (
 	"encoding/base32"
 	"net/http"
+	"strings"
 	"time"
 
-	log "github.com/sirupsen/logrus"
-	"github.com/drone/drone/shared/httputil"
-	"github.com/drone/drone/shared/token"
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/securecookie"
 	"github.com/mikkeloscar/maze/model"
+	"github.com/mikkeloscar/maze/pkg/token"
 	"github.com/mikkeloscar/maze/remote"
 	"github.com/mikkeloscar/maze/store"
+	log "github.com/sirupsen/logrus"
 )
 
 func GetLogin(c *gin.Context) {
@@ -87,8 +87,22 @@ func GetLogin(c *gin.Context) {
 		return
 	}
 
-	httputil.SetCookie(c.Writer, c.Request, "user_sess", tokenstr)
-	redirect := httputil.GetCookie(c.Request, "user_last")
+	cookie := http.Cookie{
+		Name:     "user_sess",
+		Value:    tokenstr,
+		Path:     "/",
+		Domain:   c.Request.URL.Host,
+		HttpOnly: true,
+		Secure:   isHttps(c.Request),
+		MaxAge:   2147483647, // the cooke value (token) is responsible for expiration
+	}
+	http.SetCookie(c.Writer, &cookie)
+
+	redirectCookie, err := c.Request.Cookie("user_last")
+	if err != nil {
+		return
+	}
+	redirect := redirectCookie.Value
 	if len(redirect) == 0 {
 		redirect = "/"
 	}
@@ -96,7 +110,39 @@ func GetLogin(c *gin.Context) {
 }
 
 func GetLogout(c *gin.Context) {
-	httputil.DelCookie(c.Writer, c.Request, "user_sess")
-	httputil.DelCookie(c.Writer, c.Request, "user_last")
+	deleteCookie(c.Writer, c.Request, "user_sess")
+	deleteCookie(c.Writer, c.Request, "user_last")
 	c.Redirect(http.StatusSeeOther, "/login")
+}
+
+// deleteCookie deletes a cookie.
+func deleteCookie(w http.ResponseWriter, r *http.Request, name string) {
+	cookie := http.Cookie{
+		Name:   name,
+		Value:  "deleted",
+		Path:   "/",
+		Domain: r.URL.Host,
+		MaxAge: -1,
+	}
+
+	http.SetCookie(w, &cookie)
+}
+
+// isHttps is a helper function that evaluates the http.Request
+// and returns True if the Request uses HTTPS. It is able to detect,
+// using the X-Forwarded-Proto, if the original request was HTTPS and
+// routed through a reverse proxy with SSL termination.
+func isHttps(r *http.Request) bool {
+	switch {
+	case r.URL.Scheme == "https":
+		return true
+	case r.TLS != nil:
+		return true
+	case strings.HasPrefix(r.Proto, "HTTPS"):
+		return true
+	case r.Header.Get("X-Forwarded-Proto") == "https":
+		return true
+	default:
+		return false
+	}
 }

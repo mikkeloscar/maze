@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"net/url"
 
-	"github.com/drone/drone/shared/httputil"
 	"github.com/google/go-github/github"
 	"github.com/gorilla/securecookie"
 	"github.com/mikkeloscar/maze/common/pkgconfig"
@@ -47,7 +46,6 @@ func newClient(uri, token string) *github.Client {
 	t := oauth2.StaticTokenSource(
 		&oauth2.Token{AccessToken: token},
 	)
-	// tc := config.Cliento(oauth2.NoContext, &oauth2.Token{AccessToken: token})
 	tc := oauth2.NewClient(oauth2.NoContext, t)
 
 	c := github.NewClient(tc)
@@ -71,7 +69,6 @@ func (g *Github) Login(res http.ResponseWriter, req *http.Request) (*model.User,
 			AuthURL:  fmt.Sprintf("%s/login/oauth/authorize", g.URL),
 			TokenURL: fmt.Sprintf("%s/login/oauth/access_token", g.URL),
 		},
-		RedirectURL: fmt.Sprintf("%s/authorize", httputil.GetURL(req)),
 	}
 
 	// get the OAuth code

@@ -3,8 +3,8 @@ package controller
 import (
 	"net/http"
 
-	"github.com/drone/drone/shared/token"
 	"github.com/gin-gonic/gin"
+	"github.com/mikkeloscar/maze/pkg/token"
 	"github.com/mikkeloscar/maze/router/middleware/session"
 )
 
