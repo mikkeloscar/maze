@@ -12,7 +12,7 @@ require (
 	github.com/rubenv/sql-migrate v1.3.1
 	github.com/russross/meddler v1.0.1
 	github.com/satori/go.uuid v1.2.0
-	github.com/sirupsen/logrus v1.9.0
+	github.com/sirupsen/logrus v1.9.1
 	github.com/stretchr/testify v1.10.0
 	golang.org/x/oauth2 v0.30.0
 	gopkg.in/yaml.v2 v2.4.0
