@@ -2,7 +2,7 @@ module github.com/mikkeloscar/maze
 
 require (
 	github.com/gin-gonic/gin v1.10.0
-	github.com/golang-jwt/jwt v3.2.2+incompatible
+	github.com/golang-jwt/jwt/v4 v4.5.2
 	github.com/google/go-github v17.0.0+incompatible
 	github.com/gorilla/securecookie v1.1.1
 	github.com/ianschenck/envflag v0.0.0-20140720210342-9111d830d133
